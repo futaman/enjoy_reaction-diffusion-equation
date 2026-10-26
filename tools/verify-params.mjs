@@ -15,6 +15,8 @@
 //   node tools/verify-params.mjs special    # 全滅・一様の点
 //   node tools/verify-params.mjs perf       # 速度
 //   node tools/verify-params.mjs seeds      # 種の置き方の比較
+//   node tools/verify-params.mjs scan F=0.010:0.020:6 k=0.043:0.051:5 seed=random name=file  # F-k の格子で試す
+//   node tools/verify-params.mjs adhoc F=0.014 k=0.0505 seed=random steps=8000 [Du= Dv= dt= N=] name=file
 // 出力: tools/out/*.png と標準出力の表
 
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
@@ -204,13 +206,14 @@ function chunk(type, data) {
   const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(td));
   return Buffer.concat([len, td, crc]);
 }
-function encodePNG(w, h, rgb) {
-  const raw = Buffer.alloc((w * 3 + 1) * h);
-  for (let y = 0; y < h; y++) { raw[y * (w * 3 + 1)] = 0; rgb.copy(raw, y * (w * 3 + 1) + 1, y * w * 3, (y + 1) * w * 3); }
+/** 8-bit indexed PNG. idx: Uint8Array w*h, pal: array of [r,g,b] (<=256). */
+function encodePNG(w, h, idx, pal) {
+  const raw = Buffer.alloc((w + 1) * h);
+  for (let y = 0; y < h; y++) { raw[y * (w + 1)] = 0; Buffer.from(idx.buffer, idx.byteOffset + y * w, w).copy(raw, y * (w + 1) + 1); }
   const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
+  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 3; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr),
-    chunk('IDAT', deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
+    chunk('PLTE', Buffer.from(pal.flat())), chunk('IDAT', deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
 }
 // v -> colour (dark navy -> teal -> pale yellow)
 const STOPS = [[0, [16, 24, 48]], [0.35, [30, 110, 140]], [0.7, [120, 200, 150]], [1, [250, 245, 190]]];
@@ -226,7 +229,9 @@ function cmap(t) {
 function montage(file, tiles, px = 128, gap = 3) {
   const rows = tiles.length, cols = Math.max(...tiles.map((r) => r.length));
   const W = cols * px + (cols + 1) * gap, H = rows * px + (rows + 1) * gap;
-  const rgb = Buffer.alloc(W * H * 3, 255);
+  const LEVELS = 64; // v is quantised to 64 colours; index LEVELS = white background
+  const pal = Array.from({ length: LEVELS }, (_, i) => cmap(i / (LEVELS - 1))).concat([[255, 255, 255]]);
+  const idx = new Uint8Array(W * H).fill(LEVELS);
   tiles.forEach((row, r) => row.forEach((tile, c) => {
     if (!tile) return;
     const { v, N } = tile;
@@ -237,12 +242,12 @@ function montage(file, tiles, px = 128, gap = 3) {
       const y0 = Math.floor(y * N / px), y1 = Math.max(y0 + 1, Math.floor((y + 1) * N / px));
       let s = 0, n = 0;
       for (let yy = y0; yy < y1; yy++) for (let xx = x0; xx < x1; xx++) { s += v[yy * N + xx]; n++; }
-      const col = cmap(s / n / 0.45);
-      const o = ((oy + y) * W + ox + x) * 3; rgb[o] = col[0]; rgb[o + 1] = col[1]; rgb[o + 2] = col[2];
+      const t = Math.max(0, Math.min(1, s / n / 0.45));
+      idx[(oy + y) * W + ox + x] = Math.round(t * (LEVELS - 1));
     }
   }));
   mkdirSync(OUT, { recursive: true });
-  writeFileSync(join(OUT, file), encodePNG(W, H, rgb));
+  writeFileSync(join(OUT, file), encodePNG(W, H, idx, pal));
   return join('tools/out', file);
 }
 
@@ -252,12 +257,12 @@ const BASE = { N: 192, Du: 1.0, Dv: 0.5, dt: 0.8 };
 
 // Final values (adjusted after verification; see docs/param-report.md)
 export const PRESETS = [
-  { id: 'mitosis', name: '分裂する点', F: 0.0367, k: 0.0649, seed: 'center', box: [0.0345, 0.0385, 0.0635, 0.0660] },
-  { id: 'spots', name: '水玉', F: 0.030, k: 0.062, seed: 'random', box: [0.026, 0.034, 0.0605, 0.0635] },
-  { id: 'maze', name: '迷路', F: 0.029, k: 0.057, seed: 'random', box: [0.026, 0.032, 0.055, 0.059] },
-  { id: 'coral', name: 'サンゴ/しま', F: 0.0545, k: 0.062, seed: 'random', box: [0.051, 0.058, 0.0605, 0.0635] },
-  { id: 'holes', name: '穴あき', F: 0.039, k: 0.058, seed: 'random', box: [0.036, 0.042, 0.0565, 0.0595] },
-  { id: 'spiral', name: 'うずまき・波', F: 0.012, k: 0.049, seed: 'random', box: [0.010, 0.014, 0.047, 0.051] },
+  { id: 'mitosis', name: '分裂する点', F: 0.037, k: 0.0645, seed: 'random', box: [0.035, 0.039, 0.0637, 0.0648] },
+  { id: 'spots', name: '水玉', F: 0.030, k: 0.062, seed: 'random', box: [0.028, 0.033, 0.0616, 0.0628] },
+  { id: 'maze', name: '迷路', F: 0.029, k: 0.057, seed: 'random', box: [0.0275, 0.0305, 0.0563, 0.0577] },
+  { id: 'coral', name: 'サンゴ/しま', F: 0.0545, k: 0.062, seed: 'center', box: [0.051, 0.058, 0.0613, 0.0627] },
+  { id: 'holes', name: '穴あき', F: 0.035, k: 0.0572, seed: 'random', box: [0.034, 0.036, 0.0569, 0.0576] },
+  { id: 'spiral', name: 'うずまき・波', F: 0.014, k: 0.0505, seed: 'random', box: [0.012, 0.016, 0.049, 0.052] },
 ];
 
 const fmt = (x, d = 3) => (Number.isFinite(x) ? x.toFixed(d) : String(x));
@@ -277,17 +282,18 @@ function line(name, r, extra = '') {
 async function presets(arg) {
   const steps = Number(arg.steps || 20000);
   const snaps = [1000, 3000, 6000, 10000, 15000, 20000].filter((s) => s <= steps);
-  const jobs = PRESETS.map((p) => ({ ...BASE, ...p, steps, snaps, every: 250, lateGap: 1000 }));
+  const N = Number(arg.N || BASE.N);
+  const jobs = PRESETS.map((p) => ({ ...BASE, ...p, N, steps, snaps, every: 250, lateGap: 1000 }));
   const res = await pool(jobs);
-  console.log(`\n== presets (N=${BASE.N}, dt=${BASE.dt}, Du=${BASE.Du}, Dv=${BASE.Dv}) ==`);
+  console.log(`\n== presets (N=${N}, dt=${BASE.dt}, Du=${BASE.Du}, Dv=${BASE.Dv}) ==`);
   const rows = [];
   res.forEach((r, i) => {
     const p = PRESETS[i];
     console.log(line(`${p.id} F=${p.F} k=${p.k} ${p.seed}`, r, `form@${stepsToForm(r.trace)}`));
     console.log('   trace frac:', r.trace.filter((_, j) => j % 8 === 7).map((t) => `${t.step}:${fmt(t.frac, 2)}/${t.blobs}`).join(' '));
-    rows.push(r.snaps.map((s) => ({ v: s.v, N: BASE.N })));
+    rows.push(r.snaps.map((s) => ({ v: s.v, N })));
   });
-  console.log('wrote', montage('presets.png', rows, 128), `(rows=${PRESETS.map((p) => p.id).join(',')}; cols=${snaps.join(',')})`);
+  console.log('wrote', montage(N === BASE.N ? 'presets.png' : `presets-${N}.png`, rows, 128), `(rows=${PRESETS.map((p) => p.id).join(',')}; cols=${snaps.join(',')})`);
 }
 
 async function seeds() {
@@ -316,7 +322,7 @@ async function boxes(arg) {
     const [f0, f1, k0, k1] = p.box;
     const fs = [f0, (f0 + f1) / 2, f1], ks = [k0, (k0 + k1) / 2, k1];
     const jobs = [];
-    for (const F of fs) for (const k of ks) jobs.push({ ...BASE, F, k, seed: p.seed, steps, every: 500, rng: 7 });
+    for (const F of fs) for (const k of ks) jobs.push({ ...BASE, F, k, seed: p.seed, steps, every: 500, rng: +(arg.rng || 7) });
     const res = await pool(jobs);
     console.log(`\n== box ${p.id}: F ${f0}..${f1}, k ${k0}..${k1} (${steps} steps, seed=${p.seed}) ==`);
     const rows = [];
@@ -336,19 +342,19 @@ async function boxes(arg) {
 async function dtTest() {
   // Compare dt=1.0 with dt=0.8 at the same simulated time; noise seed is the harshest.
   const T = 8000; const jobs = [];
-  for (const p of PRESETS) for (const dt of [1.0, 0.8]) jobs.push({ ...BASE, F: p.F, k: p.k, dt, seed: 'noise', steps: Math.round(T / dt), every: 500 });
+  for (const p of PRESETS) for (const dt of [1.0, 0.9, 0.8]) jobs.push({ ...BASE, F: p.F, k: p.k, dt, seed: p.seed, steps: Math.round(T / dt), every: 500 });
   // extra stress: high-v seeds, early steps (checkerboard would appear right away)
   const res = await pool(jobs);
-  console.log(`\n== dt comparison (same time T=${T}, seed=noise) ==`);
+  console.log(`\n== dt comparison (same simulated time T=${T}, preset seeds) ==`);
   const rows = [];
   PRESETS.forEach((p, i) => {
-    const a = res[2 * i], b = res[2 * i + 1];
-    console.log(line(`${p.id} dt=1.0`, a)); console.log(line(`${p.id} dt=0.8`, b));
-    rows.push([{ v: a.snaps.at(-1).v, N: BASE.N }, { v: b.snaps.at(-1).v, N: BASE.N }]);
+    const [a, m, b] = res.slice(3 * i, 3 * i + 3);
+    console.log(line(`${p.id} dt=1.0`, a)); console.log(line(`${p.id} dt=0.9`, m)); console.log(line(`${p.id} dt=0.8`, b));
+    rows.push([a, m, b].map((r) => ({ v: r.snaps.at(-1).v, N: BASE.N })));
   });
-  console.log('wrote', montage('dt-compare.png', rows, 96), '(cols: dt=1.0, dt=0.8)');
+  console.log('wrote', montage('dt-compare.png', rows, 96), '(cols: dt=1.0, 0.9, 0.8)');
   // Explicit checkerboard test: pure diffusion of a checkerboard perturbation
-  for (const dt of [1.0, 0.8, 1.05]) {
+  for (const dt of [1.05, 1.0, 0.9, 0.8]) {
     const N = 16; let u = new Float32Array(N * N), v = new Float32Array(N * N), u2 = new Float32Array(N * N), v2 = new Float32Array(N * N);
     for (let i = 0; i < N * N; i++) { u[i] = 1 + 0.01 * (((i % N) + ((i / N) | 0)) % 2 ? 1 : -1); }
     for (let t = 0; t < 50; t++) { step(u, v, u2, v2, N, 1.0, 0.5, 0.03, 0.06, dt); [u, u2] = [u2, u]; [v, v2] = [v2, v]; }
