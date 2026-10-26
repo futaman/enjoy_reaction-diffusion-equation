@@ -199,7 +199,7 @@ details.teacher > summary::before { content: "📝 "; }
 .frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; line-height: 1.15; margin: 0 2px; font-family: var(--font-math); }
 .frac > span:first-child { border-bottom: 1px solid currentColor; padding: 0 2px; }
 .frac > span:last-child { padding: 0 2px; }
-.math-block { display: block; text-align: center; font-size: 1.2rem; margin: 12px 0; overflow-x: auto; padding: 4px 0; }
+.math-block { display: block; text-align: center; font-size: 1.2rem; margin: 12px 0; overflow-x: auto; padding: 4px 0; white-space: normal; }
 .t-diff { color: var(--t-diff); }
 .t-feed { color: var(--t-feed); }
 .t-react { color: var(--t-react); }

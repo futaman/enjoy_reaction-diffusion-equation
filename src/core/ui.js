@@ -98,8 +98,8 @@
   }
 
   // 数字のマス。values は2次元配列（null は空欄）。editable なら入力欄になる。
-  // color(v) で背景色の CSS 文字列を返すと色が付く。
-  function numGrid({ values, editable = false, format = (v) => String(v), color = null, highlight = null, onChange = null, onCellClick = null }) {
+  // color(v) で背景色、textColor(v) で文字色の CSS 文字列を返すと色が付く。
+  function numGrid({ values, editable = false, format = (v) => String(v), color = null, textColor = null, highlight = null, onChange = null, onCellClick = null }) {
     const rows = values.length, cols = values[0].length;
     const el = h('div', { class: 'numgrid', style: { gridTemplateColumns: `repeat(${cols}, auto)` } });
     const cells = [];
@@ -131,6 +131,7 @@
           cell.textContent = v == null ? '' : format(v);
         }
         cell.style.background = color && v != null && !isInput ? color(v) : '';
+        cell.style.color = textColor && v != null && !isInput ? textColor(v) : '';
         cell.classList.toggle('hl', !!(highlight && highlight(r, c)));
       }
     }

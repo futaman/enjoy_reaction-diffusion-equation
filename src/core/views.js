@@ -32,6 +32,24 @@
     return `rgb(${L[i]}, ${L[i + 1]}, ${L[i + 2]})`;
   }
 
+  // キャンバスの内部解像度を、表示幅 × 画素密度に合わせる（スマホで文字が小さくならないように）。
+  // 戻り値の W, H は CSS ピクセル。描画は CSS ピクセルの座標で行う。
+  function fitCanvas(canvas, cssH, fallbackW) {
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    const W = Math.round(canvas.clientWidth || fallbackW), H = cssH;
+    if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
+      canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, W, H };
+  }
+  function observeResize(el, fn) {
+    if (!('ResizeObserver' in window)) return;
+    let w = 0;
+    new ResizeObserver((ents) => { const nw = Math.round(ents[0].contentRect.width); if (nw && nw !== w) { w = nw; fn(); } }).observe(el);
+  }
+
   // ---- 草原ビュー（2次元） ----
   // opts: field 'v'|'u', palette, range [lo, hi], brush {mode, radius} | null,
   //       onPick(i), onPaint(), colorbar(true), title（カラーバーの見出し）, hiLabel（カラーバー右端の文字）,
@@ -185,6 +203,7 @@
       this.o = Object.assign({ min: 0, max: 1, color: '--t-u', labels: false, height: 220, highlight: null }, opts);
       this.canvas = h('canvas', { width: this.o.width || 640, height: this.o.height });
       this.el = h('div', { class: 'bars' }, this.canvas);
+      observeResize(this.canvas, () => this.render());
       if (this.o.onPick) {
         this.canvas.style.cursor = 'pointer';
         this.canvas.addEventListener('pointerdown', (ev) => {
@@ -201,7 +220,7 @@
     set(opts) { Object.assign(this.o, opts); this.render(); }
     render() {
       const { canvas } = this, o = this.o, a = o.get(), n = a.length;
-      const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+      const { ctx, W, H } = fitCanvas(canvas, o.height, o.width || 640);
       const pad = { t: o.labels ? 26 : 10, b: 10, l: 6, r: 6 };
       ctx.clearRect(0, 0, W, H);
       const bw = (W - pad.l - pad.r) / n;
@@ -238,6 +257,7 @@
       this.canvas = h('canvas', { width: 640, height: this.o.height });
       this.legend = h('div', { class: 'graph-legend' }, this.o.series.map((s) => h('span', { html: s.label, style: { color: `var(${s.color})` } })));
       this.el = h('div', { class: 'graph' }, this.canvas, this.legend);
+      observeResize(this.canvas, () => this.render());
       this.render();
     }
     push(values) {
@@ -245,7 +265,8 @@
     }
     clear() { this.data = this.o.series.map(() => []); this.render(); }
     render() {
-      const { canvas, o } = this, ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+      const { canvas, o } = this;
+      const { ctx, W, H } = fitCanvas(canvas, o.height, 640);
       const pad = { t: 12, b: 26, l: 44, r: 10 };
       ctx.clearRect(0, 0, W, H);
       const ink = cssVar('--ink-2'), line = cssVar('--line');
@@ -274,6 +295,7 @@
   }
 
   // ---- 再生バー（ループ） ----
+  // sim は RD.Sim でなくても、step(n)・steps・exploded を持つオブジェクトなら何でもよい（自作モデル可）。
   // opts: sim, onFrame()（描画）, onStep()（1コマごと。軽い処理だけ）, onReset(), onExplode(),
   //       speeds [{label, spf}]（spf = 1フレームあたりのステップ数。0.1 なら10フレームに1回）, speed（初期 index）,
   //       autoplay, showTime, timeLabel(sim)
@@ -302,6 +324,12 @@
     play() { if (this.running) return; this.running = true; this.playBtn.innerHTML = '⏸ 一時停止'; this.raf = requestAnimationFrame(this._tick); }
     pause() { this.running = false; this.playBtn.innerHTML = '▶ 再生'; cancelAnimationFrame(this.raf); }
     toggle() { this.running ? this.pause() : this.play(); }
+    // 速さを変える（index）。speeds を差し替えることもできる
+    setSpeed(i, speeds) {
+      if (speeds) this.o.speeds = speeds;
+      this.o.speed = Math.max(0, Math.min(this.o.speeds.length - 1, i));
+      if (this.speedSeg) this.speedSeg.set(this.o.speed, false);
+    }
     // 再生・1コマのボタンを使えなくする（爆発したときなど）
     setEnabled(on) { if (!on) this.pause(); this.playBtn.disabled = !on; this.stepBtn.disabled = !on; }
     destroy() { this.pause(); this.io && this.io.disconnect(); Runner.all.delete(this); }
