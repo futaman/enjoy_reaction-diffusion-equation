@@ -41,8 +41,8 @@ core（`src/core/*`、`src/styles/base.css`、`build.mjs`）は**変更しない
 | 操作 | `RD.ui.button(label, onClick, {primary, small})`、`slider({label, min, max, step, value, format, onInput})`、`toggle(label, checked, onChange)`、`segmented(options, value, onChange)`、`numGrid({values, editable, color, highlight, onCellClick, format})` |
 | 数値 | `RD.ui.parseNum(str)`（全角や − も可）、`fmt(v, digits)` |
 | エンジン | `new RD.Sim({w, h, Du, Dv, F, k, dt, terms})`。`step(n)`、`breakdown(i)`（家計簿の値）、`seed(style)`、`seedSquare`、`paint`、`reset`、`setParams`、`snapshot` / `restore`、`stats()`、`exploded` |
-| 表示 | `new RD.FieldView(sim, {field, palette, range, brush, onPick, maxPx})`、`new RD.BarView({get, min, max, color, labels, highlight, onPick, refLine})`、`new RD.TimeGraph({series, ymin, ymax, maxPoints})` |
-| 再生 | `new RD.Runner({sim, onFrame, onStep, onReset, onExplode, speeds, speed, autoplay, timeLabel})`。`.el` が再生バー。ページを離れると自動で止まる |
+| 表示 | `new RD.FieldView(sim, {field, palette, range, brush, onPick, maxPx, hiLabel, readout})`（readout は true / false / `(i) => HTML`）、`new RD.BarView({get, min, max, color, labels, highlight, onPick, refLine, width})`（labels: `'wide'` で幅 560px 以上のときだけ値を表示）、`new RD.TimeGraph({series, ymin, ymax, maxPoints})` |
+| 再生 | `new RD.Runner({sim, onFrame, onStep, onReset, onExplode, speeds, speed, autoplay, timeLabel})`。`.el` が再生バー、`.setEnabled(false)` でボタンを無効化。ページを離れると自動で止まる |
 | 家計簿 | `new RD.Ledger({sim, index, show})`、`.show(i)`、`.update()` |
 | 式（色分け） | `new RD.Equation({sim, interactive, show, onChange})`（項クリックで `sim.terms` を切り替え） |
 | 問題 | `ctx.quiz(spec)`。種類は choice / predict / number / grid / match / fill / custom（`src/core/quiz.js` 先頭） |

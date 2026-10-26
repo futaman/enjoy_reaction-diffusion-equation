@@ -34,7 +34,8 @@
 
   // ---- 草原ビュー（2次元） ----
   // opts: field 'v'|'u', palette, range [lo, hi], brush {mode, radius} | null,
-  //       onPick(i), onPaint(), colorbar(true), title（カラーバーの見出し）
+  //       onPick(i), onPaint(), colorbar(true), title（カラーバーの見出し）, hiLabel（カラーバー右端の文字）,
+  //       readout: true | false | (i) => HTML（えらんだマスの表示。既定は field に合わせる）
   class FieldView {
     constructor(sim, opts = {}) {
       this.sim = sim;
@@ -46,6 +47,8 @@
       this.onPaint = opts.onPaint || null;
       this.picked = opts.picked ?? null;
       this.showReadout = opts.readout !== false;
+      this.readoutFn = typeof opts.readout === 'function' ? opts.readout : null;
+      this.hiLabel = opts.hiLabel ?? null;
       const { w, hgt } = { w: sim.w, hgt: sim.h };
       this.cell = Math.max(1, Math.floor((opts.maxPx || 480) / Math.max(w, hgt)));
       this.canvas = h('canvas', { width: w * this.cell, height: hgt * this.cell, role: 'img', 'aria-label': opts.title || '草原のようす' });
@@ -71,7 +74,7 @@
     _updateColorbar() {
       this.cbBar.style.background = gradientCss(this.palette);
       this.cbLo.textContent = fmt(this.range[0], 2);
-      this.cbHi.textContent = fmt(this.range[1], 2) + (this.field === 'v' ? ' 以上' : '');
+      this.cbHi.textContent = this.hiLabel ?? fmt(this.range[1], 2) + (this.field === 'v' ? ' 以上' : '');
       this.cbTitle.innerHTML = this.title || (this.field === 'v' ? '色 ＝ 🐇 ウサギの濃さ <i class="v">v</i>' : '色 ＝ 🌱 草の量 <i class="v">u</i>');
     }
     _cellAt(ev) {
@@ -143,7 +146,11 @@
         ctx.strokeStyle = '#ffffff'; ctx.strokeRect(x * c - m * 0.5, y * c - m * 0.5, c + m, c + m);
         ctx.strokeStyle = '#e0303a'; ctx.strokeRect(x * c - m * 0.5 - ctx.lineWidth, y * c - m * 0.5 - ctx.lineWidth, c + m + ctx.lineWidth * 2, c + m + ctx.lineWidth * 2);
         if (this.showReadout) {
-          this.readout.innerHTML = `えらんだマス（${x + 1}, ${y + 1}）　草 <i class="v">u</i> = ${fmt(sim.u[this.picked], 3)}　ウサギ <i class="v">v</i> = ${fmt(sim.v[this.picked], 3)}`;
+          const i = this.picked;
+          this.readout.innerHTML = this.readoutFn ? this.readoutFn(i)
+            : `えらんだマス（${x + 1}, ${y + 1}）　` + (this.field === 'u' && !sim.terms.react
+              ? `<i class="v">u</i> = ${fmt(sim.u[i], 3)}`
+              : `草 <i class="v">u</i> = ${fmt(sim.u[i], 3)}　ウサギ <i class="v">v</i> = ${fmt(sim.v[i], 3)}`);
         }
       } else if (this.showReadout && !this.readout.textContent) {
         this.readout.textContent = this.brush ? 'なぞるとウサギを放せます' : 'マスをクリックすると値が見られます';
@@ -171,11 +178,12 @@
   }
 
   // ---- 棒グラフ（1次元） ----
-  // opts: get() → 配列, max, min, color（CSS 変数名）, labels（値を表示）, highlight（index）, onPick(i), height, refLine（基準線の値）
+  // opts: get() → 配列, max, min, color（CSS 変数名）, labels（値を表示。'wide' なら幅 560px 以上のときだけ）,
+  //       highlight（index）, onPick(i), width, height, refLine（基準線の値）
   class BarView {
     constructor(opts) {
       this.o = Object.assign({ min: 0, max: 1, color: '--t-u', labels: false, height: 220, highlight: null }, opts);
-      this.canvas = h('canvas', { width: 640, height: this.o.height });
+      this.canvas = h('canvas', { width: this.o.width || 640, height: this.o.height });
       this.el = h('div', { class: 'bars' }, this.canvas);
       if (this.o.onPick) {
         this.canvas.style.cursor = 'pointer';
@@ -207,7 +215,7 @@
         ctx.fillRect(pad.l + i * bw + bw * 0.1, Math.min(top, base), bw * 0.8, Math.abs(base - top));
         ctx.globalAlpha = 1;
         if (o.highlight === i) { ctx.strokeStyle = acc; ctx.lineWidth = 3; ctx.strokeRect(pad.l + i * bw + bw * 0.05, pad.t - 4, bw * 0.9, H - pad.t - pad.b + 4); }
-        if (o.labels) {
+        if (o.labels && (o.labels !== 'wide' || this.canvas.getBoundingClientRect().width >= 560 || !this.canvas.isConnected)) {
           ctx.fillStyle = ink; ctx.font = `${Math.min(15, bw * 0.38)}px sans-serif`; ctx.textAlign = 'center';
           ctx.fillText(fmt(val, o.labelDigits ?? 1), pad.l + i * bw + bw / 2, Math.min(top, base) - 6 < 12 ? 14 : Math.min(top, base) - 6);
         }
@@ -278,7 +286,7 @@
       this.visible = true;
       this.playBtn = RD.ui.button('▶ 再生', () => this.toggle(), { small: true });
       this.stepBtn = RD.ui.button('1コマ進める', () => { this.pause(); this.advance(1); }, { small: true });
-      this.resetBtn = this.o.onReset ? RD.ui.button('↺ はじめから', () => { this.pause(); this.o.onReset(); this.draw(); }, { small: true }) : null;
+      this.resetBtn = this.o.onReset ? RD.ui.button('↺ はじめから', () => { this.pause(); this.setEnabled(true); this.o.onReset(); this.draw(); }, { small: true }) : null;
       this.speedSeg = this.o.speeds.length > 1 ? RD.ui.segmented(this.o.speeds.map((s, i) => ({ value: i, label: s.label })), this.o.speed, (i) => { this.o.speed = i; }) : null;
       this.timeEl = h('span', { class: 'time' });
       this.el = h('div', { class: 'playbar' }, this.playBtn, this.stepBtn, this.resetBtn, this.speedSeg && this.speedSeg.el, this.o.showTime ? this.timeEl : null);
@@ -294,6 +302,8 @@
     play() { if (this.running) return; this.running = true; this.playBtn.innerHTML = '⏸ 一時停止'; this.raf = requestAnimationFrame(this._tick); }
     pause() { this.running = false; this.playBtn.innerHTML = '▶ 再生'; cancelAnimationFrame(this.raf); }
     toggle() { this.running ? this.pause() : this.play(); }
+    // 再生・1コマのボタンを使えなくする（爆発したときなど）
+    setEnabled(on) { if (!on) this.pause(); this.playBtn.disabled = !on; this.stepBtn.disabled = !on; }
     destroy() { this.pause(); this.io && this.io.disconnect(); Runner.all.delete(this); }
     advance(n) {
       for (let i = 0; i < n; i++) {
