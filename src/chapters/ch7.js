@@ -104,7 +104,8 @@
   // ================================================================
   class FkMap {
     constructor(opts = {}) {
-      this.o = Object.assign({ mode: 'atlas', palette: 'meadow', boxes: [], places: true, zoom: false }, opts);
+      this.o = Object.assign({ mode: 'atlas', palette: RD.defaultPalette(), boxes: [], places: true, zoom: false }, opts);
+      this.autoPalette = !opts.palette; // 既定のパレットなら、見た目（ノート / かわいい）の切り替えに合わせる
       this.F = opts.F ?? 0.03; this.k = opts.k ?? 0.06;
       this.canvas = h('canvas', {
         role: 'img', 'aria-label': 'F-k マップ（模様の地図）。クリックした場所の F と k をえらべます',
@@ -116,7 +117,7 @@
       this._bind();
       this._layout();
       // 表示の幅が変わったら、文字の大きさはそのままで描き直す。テーマを変えたら色を読み直す。
-      this._onTheme = () => this.draw();
+      this._onTheme = () => { if (this.autoPalette) this.o.palette = RD.defaultPalette(); this.draw(); };
       window.addEventListener('rd-theme', this._onTheme);
       if ('ResizeObserver' in window) {
         this._ro = new ResizeObserver(() => { const w = Math.round(this.canvas.clientWidth); if (w && w !== this.W) this.draw(); });
@@ -182,7 +183,7 @@
     set(F, k) { this.F = F; this.k = k; this.draw(); }
     setMode(m) { this.o.mode = m; this.draw(); }
     setZoom(z) { this.o.zoom = !!z; this._layout(); }
-    setPalette(name) { this.o.palette = name; this.draw(); }
+    setPalette(name) { this.o.palette = name; this.autoPalette = false; this.draw(); }
     setBoxes(list) { this.o.boxes = list; this.draw(); }
     // 見本の絵（1マス = MAP.tile 画素）。表示するときに大きさを合わせる。
     _buildBase() {
@@ -479,7 +480,7 @@
       let row = sSim.h >> 1, autoRow = true, frameNo = 0;
       const sView = new RD.FieldView(sSim, { maxPx: 384, readout: false, onPick: (i) => { row = sSim.xy(i)[1]; autoRow = false; sView.picked = null; drawStory(); } });
       const graph = h('canvas', { role: 'img', 'aria-label': '点線の上の草とウサギの量のグラフ' });
-      const fieldSeg = RD.ui.segmented([{ value: 'v', label: '🐇 ウサギ v' }, { value: 'u', label: '🌱 草 u' }], 'v', (f) => { sView.setField(f, f === 'u' ? [0, 1] : [0, 0.4]); sView.setPalette(f === 'u' ? 'grass' : 'meadow'); drawStory(); });
+      const fieldSeg = RD.ui.segmented([{ value: 'v', label: '🐇 ウサギ v' }, { value: 'u', label: '🌱 草 u' }], 'v', (f) => { sView.setField(f, f === 'u' ? [0, 1] : [0, 0.4]); sView.setPalette(f === 'u' ? 'grass' : RD.defaultPalette(), f !== 'u'); drawStory(); });
       function drawStory() {
         // 草原をクリックするまでは、いちばんウサギの濃いマスを通る行を自動でえらぶ
         if (autoRow && frameNo++ % 30 === 0) { let mi = 0; for (let i = 1; i < sSim.n; i++) if (sSim.v[i] > sSim.v[mi]) mi = i; row = sSim.xy(mi)[1]; }

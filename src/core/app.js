@@ -31,7 +31,29 @@
     cleanups.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } });
     cleanups = [];
     RD.Runner && RD.Runner.stopAll();
+    RD.FieldView && RD.FieldView.live.clear();
     RD.calc.unmount();
+  }
+
+  // 見た目（ノート / かわいい）。明るさ（data-theme）とは別に、data-look で切り替える。
+  const LOOKS = [['note', '📓 ノート'], ['cute', '🎀 かわいい']];
+  function applyLook(look) {
+    if (look === 'cute') document.documentElement.setAttribute('data-look', 'cute');
+    else document.documentElement.removeAttribute('data-look');
+  }
+  RD.look = () => (document.documentElement.getAttribute('data-look') === 'cute' ? 'cute' : 'note');
+  // 色や見た目が変わったときに、キャンバスに描いたものを描き直す
+  function redrawAll() {
+    RD.Runner.all.forEach((r) => r.draw());
+    RD.FieldView.live.forEach((v) => v.refreshLook());
+    window.dispatchEvent(new Event('rd-theme'));
+  }
+
+  // 「🎀 かわいい」→ アイコンと文字に分ける（せまい画面では文字を隠す）
+  function setIconLabel(btn, text) {
+    const [ico, ...rest] = text.split(' ');
+    btn.replaceChildren(h('span', { class: 'ico', text: ico }), h('span', { class: 'lbl', text: ' ' + rest.join(' ') }));
+    btn.setAttribute('aria-label', btn.title + '：いまは' + rest.join(' '));
   }
 
   // ---- ヘッダー ----
@@ -41,7 +63,7 @@
     const applyTheme = (t) => {
       if (t === 'auto') document.documentElement.removeAttribute('data-theme');
       else document.documentElement.setAttribute('data-theme', t);
-      themeBtn.textContent = themes.find((x) => x[0] === t)[1];
+      setIconLabel(themeBtn, themes.find((x) => x[0] === t)[1]);
     };
     let theme = RD.store.get('theme', 'auto');
     applyTheme(theme);
@@ -50,13 +72,25 @@
       RD.store.set('theme', theme);
       applyTheme(theme);
       // グラフの色は CSS 変数から読むので描き直す。章で独自に描いている図は 'rd-theme' イベントで描き直す
-      RD.Runner.all.forEach((r) => r.draw());
-      window.dispatchEvent(new Event('rd-theme'));
+      redrawAll();
+    });
+
+    const lookBtn = h('button', { type: 'button', class: 'icon-btn', title: '見た目を切り替え（ノート / かわいい）' });
+    let look = RD.store.get('look', 'note');
+    const showLook = () => setIconLabel(lookBtn, LOOKS.find((x) => x[0] === look)[1]);
+    applyLook(look);
+    showLook();
+    lookBtn.addEventListener('click', () => {
+      look = look === 'cute' ? 'note' : 'cute';
+      RD.store.set('look', look);
+      applyLook(look);
+      showLook();
+      redrawAll();
     });
     return h('header', { class: 'app-header' },
       h('a', { class: 'brand', href: '#/', text: '🌱🐇 草とウサギの模様ドリル' }),
       h('span', { class: 'spacer' }),
-      themeBtn);
+      lookBtn, themeBtn);
   }
 
   // ---- トップページ ----

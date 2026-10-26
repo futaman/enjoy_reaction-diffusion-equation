@@ -136,7 +136,8 @@ ruby rt { font-size: 0.55em; color: var(--ink-2); }
 }
 .app-header .brand { font-weight: 700; text-decoration: none; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .app-header .spacer { flex: 1; }
-.app-header .icon-btn { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 2px 10px; cursor: pointer; font-size: 0.9rem; }
+.app-header .icon-btn { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 2px 10px; cursor: pointer; font-size: 0.9rem; white-space: nowrap; min-height: 34px; }
+@media (max-width: 520px) { .app-header .icon-btn .lbl { display: none; } .app-header { gap: 8px; } }
 
 .page { max-width: 1120px; margin: 0 auto; padding: 16px 16px 96px; }
 
@@ -368,3 +369,135 @@ details.teacher > summary::before { content: "📝 "; }
   .match-item select { width: 100%; max-width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+
+/* =====================================================================
+   見た目「かわいい」（data-look="cute"）
+   ノートと同じ部品・同じ配置のまま、色・形・文字の雰囲気だけを変える。
+   式の項の色は、意味（青＝広がる、緑＝生える、オレンジ＝増える、紫＝減る）を保ったまま明るめにする。
+   ===================================================================== */
+:root[data-look="cute"] {
+  --paper: #fff6f9;
+  --paper-grid: rgba(255, 150, 190, 0.16);
+  --card: #ffffff;
+  --card-2: #fff0f5;
+  --ink: #4a3540;
+  --ink-2: #7d6470;
+  --ink-3: #a891a0;
+  --line: #f6d3e1;
+  --accent: #e2558f;
+  --accent-ink: #ffffff;
+  --accent-soft: #ffe6f0;
+  --ok: #2f9a72;
+  --ok-soft: #e2f7ee;
+  --ng: #d9534f;
+  --ng-soft: #ffe9e7;
+  --hint: #a87a00;
+  --hint-soft: #fff6d6;
+  --teacher: #8a5cc2;
+  --teacher-soft: #f4edff;
+  --t-diff: #3b8fd9;
+  --t-feed: #3c9e4f;
+  --t-react: #ef8a2a;
+  --t-decay: #9c5fd4;
+  --t-u: #3c9e4f;
+  --t-v: #d25c8e;
+  --radius: 18px;
+  --shadow: 0 2px 0 rgba(226, 85, 143, 0.12), 0 6px 18px rgba(226, 85, 143, 0.08);
+  --font: "Hiragino Maru Gothic ProN", "Hiragino Maru Gothic Pro", "Zen Maru Gothic", "M PLUS Rounded 1c", "Kosugi Maru", "Arial Rounded MT Bold", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Meiryo", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-look="cute"]:not([data-theme="light"]) {
+    --paper: #241c22;
+    --paper-grid: rgba(255, 150, 190, 0.08);
+    --card: #2f252c;
+    --card-2: #3a2d36;
+    --ink: #f6e9ef;
+    --ink-2: #d2b9c5;
+    --ink-3: #a08a96;
+    --line: #4d3a45;
+    --accent: #ff8cbc;
+    --accent-ink: #3a0f22;
+    --accent-soft: #4a2738;
+    --ok: #7ad6ac;
+    --ok-soft: #1f3a2f;
+    --ng: #ff958c;
+    --ng-soft: #44261f;
+    --hint: #f0cd6a;
+    --hint-soft: #3d331b;
+    --teacher: #c9a6f2;
+    --teacher-soft: #33284a;
+    --t-diff: #86bff2;
+    --t-feed: #82d48f;
+    --t-react: #ffb26b;
+    --t-decay: #cfa3f5;
+    --t-u: #82d48f;
+    --t-v: #ff9fc6;
+    --shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  }
+}
+:root[data-look="cute"][data-theme="dark"] {
+  --paper: #241c22;
+  --paper-grid: rgba(255, 150, 190, 0.08);
+  --card: #2f252c;
+  --card-2: #3a2d36;
+  --ink: #f6e9ef;
+  --ink-2: #d2b9c5;
+  --ink-3: #a08a96;
+  --line: #4d3a45;
+  --accent: #ff8cbc;
+  --accent-ink: #3a0f22;
+  --accent-soft: #4a2738;
+  --ok: #7ad6ac;
+  --ok-soft: #1f3a2f;
+  --ng: #ff958c;
+  --ng-soft: #44261f;
+  --hint: #f0cd6a;
+  --hint-soft: #3d331b;
+  --teacher: #c9a6f2;
+  --teacher-soft: #33284a;
+  --t-diff: #86bff2;
+  --t-feed: #82d48f;
+  --t-react: #ffb26b;
+  --t-decay: #cfa3f5;
+  --t-u: #82d48f;
+  --t-v: #ff9fc6;
+  --shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* 背景：方眼のかわりに水玉 */
+:root[data-look="cute"] body {
+  background-image: radial-gradient(var(--paper-grid) 2.5px, transparent 3px);
+  background-size: 22px 22px;
+}
+/* 形：まるく、ふっくら */
+:root[data-look="cute"] .btn,
+:root[data-look="cute"] .seg button,
+:root[data-look="cute"] .app-header .icon-btn,
+:root[data-look="cute"] .calc-keys button,
+:root[data-look="cute"] .quiz-badge { border-radius: 999px; }
+:root[data-look="cute"] .btn { padding-left: 16px; padding-right: 16px; }
+:root[data-look="cute"] .btn.primary { box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 55%, #000); }
+:root[data-look="cute"] .choice,
+:root[data-look="cute"] .answer-row input[type=text],
+:root[data-look="cute"] .match-item select,
+:root[data-look="cute"] .numgrid .cell { border-radius: 12px; }
+:root[data-look="cute"] .note { border-left: 0; border-radius: 16px; padding: 10px 16px 10px 44px; position: relative; }
+:root[data-look="cute"] .note::before { position: absolute; left: 14px; top: 9px; font-size: 1.1rem; content: "💡"; }
+:root[data-look="cute"] .note.story::before { content: "🌷"; }
+:root[data-look="cute"] .note.warn::before { content: "⚠️"; }
+:root[data-look="cute"] .note.mystery::before { content: "🔮"; }
+:root[data-look="cute"] .hint { border-left: 0; border-radius: 14px; }
+:root[data-look="cute"] .sim-canvas-wrap canvas,
+:root[data-look="cute"] .graph canvas,
+:root[data-look="cute"] .bars canvas { border-radius: 14px; }
+/* 見出し：ちいさな飾りと、点線のアンダーライン */
+:root[data-look="cute"] .step > h2 { border-bottom: 2px dashed var(--line); }
+:root[data-look="cute"] .step > h2::before { content: "✿ "; color: var(--accent); }
+:root[data-look="cute"] .ch-head .ch-no::before { content: "🐇 "; }
+:root[data-look="cute"] .ch-goal .label::before { content: "⭐ "; }
+:root[data-look="cute"] .hero h1 { color: var(--accent); }
+:root[data-look="cute"] .ch-card .ttl::after { content: " 🌱"; font-size: 0.85em; }
+:root[data-look="cute"] .ch-card.cleared { background: color-mix(in srgb, var(--ok) 8%, var(--card)); }
+:root[data-look="cute"] .ch-card.cleared .mark::before { content: "🎀 "; }
+:root[data-look="cute"] details.teacher > summary::before { content: "🧸 "; }
+:root[data-look="cute"] .quiz.solved .quiz-state::before { content: "🌸 "; }

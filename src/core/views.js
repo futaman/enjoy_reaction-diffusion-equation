@@ -10,8 +10,11 @@
     sunset: { name: '夕焼け', stops: ['#1b1035', '#6b2d6b', '#e0604a', '#f7d38a'] },
     coral: { name: '海', stops: ['#0b2a3a', '#1f7a8c', '#f2b880', '#fff4e6'] },
     mono: { name: '白黒', stops: ['#ffffff', '#111111'] },
+    candy: { name: 'パステル', stops: ['#c8ecd9', '#fbe3ec', '#ffb3cf', '#f0709f', '#9c3c74'] },
     grass: { name: '草の量', stops: ['#f1ead2', '#bcd58f', '#3a8a35'] },
   };
+  // ウサギの濃さ v の既定のパレット（見た目が「かわいい」ならパステル）
+  const defaultPalette = () => (RD.look && RD.look() === 'cute' ? 'candy' : 'meadow');
   const hex = (s) => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
   const lutCache = {};
   function lut(name) {
@@ -58,7 +61,9 @@
     constructor(sim, opts = {}) {
       this.sim = sim;
       this.field = opts.field || 'v';
-      this.palette = opts.palette || (this.field === 'u' ? 'grass' : 'meadow');
+      this.palette = opts.palette || (this.field === 'u' ? 'grass' : defaultPalette());
+      this.autoPalette = !opts.palette && this.field !== 'u'; // 既定のパレットなら、見た目の切り替えに合わせて変える
+      FieldView.live.add(this);
       this.range = opts.range || (this.field === 'u' ? [0, 1] : [0, 0.4]);
       this.brush = opts.brush || null;
       this.onPick = opts.onPick || null;
@@ -86,7 +91,8 @@
       this._updateColorbar();
       this.render();
     }
-    setPalette(name) { this.palette = name; this._updateColorbar(); this.render(); }
+    setPalette(name, auto = false) { this.palette = name; this.autoPalette = auto; this._updateColorbar(); this.render(); }
+    refreshLook() { if (this.autoPalette && this.field !== 'u') this.setPalette(defaultPalette(), true); }
     setField(field, range) { this.field = field; if (range) this.range = range; this._updateColorbar(); this.render(); }
     setBrush(brush) { this.brush = brush; this.wrap.classList.toggle('brush', !!brush); }
     _updateColorbar() {
@@ -194,6 +200,8 @@
       document.body.appendChild(a); a.click(); a.remove();
     }
   }
+
+  FieldView.live = new Set();
 
   // ---- 棒グラフ（1次元） ----
   // opts: get() → 配列, max, min, color（CSS 変数名）, labels（値を表示。'wide' なら幅 560px 以上のときだけ）,
@@ -366,6 +374,7 @@
   Runner.stopAll = () => { for (const r of [...Runner.all]) r.destroy(); };
 
   RD.PALETTES = PALETTES;
+  RD.defaultPalette = defaultPalette;
   RD.colorOf = colorOf;
   RD.gradientCss = gradientCss;
   RD.FieldView = FieldView;

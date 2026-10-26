@@ -63,7 +63,7 @@
         Du: clampD(num(q.Du, D.Du ?? 1.0)), Dv: clampD(num(q.Dv, D.Dv ?? 0.5)),
       });
       let seedStyle = SEEDS.some((s) => s.value === q.seed) ? q.seed : 'random';
-      let palette = RD.PALETTES[q.palette] ? q.palette : 'meadow';
+      let palette = RD.PALETTES[q.palette] ? q.palette : RD.defaultPalette();
       sim.seed(seedStyle);
 
       // ---- 草原 ----
