@@ -33,14 +33,22 @@
   DATA.grid.answer = nextMap(DATA.grid.u, DATA.grid.dudt, DATA.grid.dt);
 
   const sgn = (v, d = 3) => (v > 1e-9 ? '+' + fmt(v, d) : v < -1e-9 ? '−' + fmt(-v, d) : '0');
-  // 色：草の量は緑の濃さ、速さは増える＝緑／減る＝赤みで（テーマに合わせて CSS 変数を混ぜる）
+  // 色：草の量（u）は緑の濃さ。速さ（∂u/∂t）は第1章の「速さ＝オレンジ、量＝緑」にそろえて、
+  // 増える（＋）＝オレンジ、減る（−）＝青（温度計の「上がる＝暖色、下がる＝寒色」）。0 は無色。
+  // テーマに合わせて CSS 変数を混ぜる（暗いモードでは項の色が明るめになる）
   const clamp01 = (x) => Math.max(0, Math.min(1, x));
   const uColor = (v) => `color-mix(in srgb, var(--t-u) ${Math.round(clamp01(v) * 58)}%, var(--card))`;
+  const D_PLUS = 'var(--t-react)', D_MINUS = 'var(--t-diff)';
   const dColor = (v) => {
-    const a = Math.round(Math.min(1, Math.abs(v) / 0.4) * 45);
+    const a = Math.round(20 + Math.min(1, Math.abs(v) / 0.4) * 30); // 20〜50%（暗いモードでも文字が読める濃さまで）
     if (Math.abs(v) < 1e-9) return 'var(--card)';
-    return `color-mix(in srgb, ${v > 0 ? 'var(--t-feed)' : 'var(--ng)'} ${a}%, var(--card))`;
+    return `color-mix(in srgb, ${v > 0 ? D_PLUS : D_MINUS} ${a}%, var(--card))`;
   };
+  // ∂u/∂t の地図の色の見本（色だけに頼らず、＋/− の文字も添える）
+  const dLegend = () => h('div', { class: 'ch2-dleg', html:
+    `<span><i style="background:color-mix(in srgb, ${D_PLUS} 40%, var(--card))"></i>＋ 増える</span>` +
+    `<span><i style="background:color-mix(in srgb, ${D_MINUS} 40%, var(--card))"></i>− 減る</span>` +
+    '<span><i style="background:var(--card)"></i>0 変わらない</span>' });
   const DU = `<span class="ch2-du">${dudt('u')}</span>`;
 
   const CSS = `
@@ -52,6 +60,9 @@
   .ch2-qmaps.ch2-maps { gap: 10px 18px; justify-content: flex-start; }
   .ch2-qnext { font-size: 0.92rem; color: var(--ink-2); margin: 6px 0 0; }
   .ch2-du { font-size: 0.92em; }
+  .ch2-dleg { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 10px; font-size: 0.8rem; color: var(--ink-2); }
+  .ch2-dleg span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .ch2-dleg i { display: inline-block; width: 0.95em; height: 0.95em; border: 1px solid var(--line); border-radius: 3px; }
   .ch2-led { max-width: 360px; margin: 10px auto 0; }
   .ch2-led td .math { font-size: 1.05em; }
   .ch2-msg { text-align: center; font-size: 0.9rem; color: var(--ink-2); min-height: 1.6em; margin: 6px 0; }
@@ -224,12 +235,13 @@
             h('li', { html: '「1コマ進める」を押す。覚えた数が、本当に次の <i>u</i> になった？' }),
             h('li', { html: '何コマか進めて、地図ぜんたいがどう変わるか見る。' })),
           note('<p>この ∂<i>u</i>/∂<i>t</i> の値は、第3章で学ぶ「<b>草のタネが風で広がる</b>」ルールで、コンピュータが計算しています。いまは中身は気にせず、「マスごとに速さが決まっている」とだけ思ってください。<br>草の多い丘のてっぺんは減り（−）、まわりは増えて（＋）いますね。</p>'),
+          p('2つの地図は、色でも区別しています。第1章と同じく<b class="t-u">量は緑</b>、<b class="t-react">速さはオレンジ</b>です。∂<i>u</i>/∂<i>t</i> の地図では、<b class="t-react">オレンジ</b>が濃いほど速く増え、<b class="t-diff">青</b>が濃いほど速く減ります。'),
           note('<p>コンピュータがしていることは、これだけです。<b>全部のマスで「今の値 ＋ 速さ × 時間」を計算して、次のコマの地図を作る。</b>それを何万回もくり返すと、模様が生まれます。</p>', 'story'),
         ],
         demo: [card('📒 草原の家計簿（Δt ＝ ' + DEMO.dt + '）',
           h('div', { class: 'ch2-maps' },
             h('div', { class: 'ch2-map' }, h('div', { class: 'cap', html: '草の量 <i class="v t-u">u</i> の地図' }), gU.el),
-            h('div', { class: 'ch2-map' }, h('div', { class: 'cap', html: `変化の速さ ${math(dudt('u')).outerHTML} の地図` }), gD.el)),
+            h('div', { class: 'ch2-map' }, h('div', { class: 'cap', html: `変化の速さ ${math(dudt('u')).outerHTML} の地図` }), gD.el, dLegend())),
           led, msg, runner.el)],
       }));
 
@@ -264,7 +276,7 @@
         p(`3×3 の草原の <i class="v t-u">u</i> の地図と、${DU} の地図があります。時間の刻みは <b>Δ<i>t</i> ＝ ${GQ.dt}</b> です。<br>1コマ後の <i class="v t-u">u</i> の地図を完成させてください（左上は例として埋めてあります）。`),
         h('div', { class: 'ch2-qmaps ch2-maps ch2-small' },
           h('div', { class: 'ch2-map' }, h('div', { class: 'cap', html: '今の <i class="v t-u">u</i>' }), mapView(GQ.u, uColor, fmt2).el),
-          h('div', { class: 'ch2-map' }, h('div', { class: 'cap', html: `${math(dudt('u')).outerHTML}` }), mapView(GQ.dudt, dColor, (v) => sgn(v, 2)).el)),
+          h('div', { class: 'ch2-map' }, h('div', { class: 'cap', html: `${math(dudt('u')).outerHTML}` }), mapView(GQ.dudt, dColor, (v) => sgn(v, 2)).el, dLegend())),
         h('div', { class: 'ch2-qnext', html: '↓ 1コマ後の <i class="v t-u">u</i>（空いているマスに数を入れます）' }));
       root.appendChild(ctx.quiz({
         id: 'grid', type: 'grid',
@@ -281,6 +293,8 @@
         answerText: GQ.answer.map((row) => row.map((v) => fmt(v, 2)).join('　')).join('<br>'),
         explain: '<p>どのマスも「今の <i>u</i> ＋ ∂<i>u</i>/∂<i>t</i> × Δ<i>t</i>」。速さ 0 のマスは変わらず、0.7 のままでしたね。コンピュータは、これを草原の何万マスで、何万回もくり返しています。</p>',
       }));
+
+      root.appendChild(note('<p>次の章では、いままで「中身は気にしない」としていた ∂<i>u</i>/∂<i>t</i> の中身の1つ、「<b>草のタネが風で広がる</b>」ルール（<b>拡散</b>）を、横1列のマスで<b>手で計算</b>します。草の丘のてっぺんが減って、まわりが増えたのはなぜか、そこでわかります。</p>'));
 
       root.appendChild(teacher(
         '<p><b>扱うつまずき：</b>★T02（<i>u</i> は場所ごとの地図）、T03（∂ と d）、★T01（値と変化の区別の復習）。</p>' +
