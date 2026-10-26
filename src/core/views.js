@@ -298,7 +298,8 @@
   // sim は RD.Sim でなくても、step(n)・steps・exploded を持つオブジェクトなら何でもよい（自作モデル可）。
   // opts: sim, onFrame()（描画）, onStep()（1コマごと。軽い処理だけ）, onReset(), onExplode(),
   //       speeds [{label, spf}]（spf = 1フレームあたりのステップ数。0.1 なら10フレームに1回）, speed（初期 index）,
-  //       autoplay, showTime, timeLabel(sim)
+  //       autoplay, showTime, timeLabel(sim),
+  //       stopWhen(sim) → 止める理由の文字列 | false（毎コマ確認）, onStop(reason)
   class Runner {
     constructor(opts) {
       this.o = Object.assign({ speeds: [{ label: 'ゆっくり', spf: 0.25 }, { label: 'ふつう', spf: 1 }, { label: 'はやい', spf: 8 }], speed: 1, showTime: true }, opts);
@@ -338,6 +339,8 @@
         this.sim.step(1);
         this.o.onStep && this.o.onStep(this.sim);
         if (this.sim.exploded) { this.pause(); this.o.onExplode && this.o.onExplode(); break; }
+        const why = this.o.stopWhen && this.o.stopWhen(this.sim);
+        if (why) { this.pause(); this.o.onStop && this.o.onStop(why); break; }
       }
       this.draw();
     }

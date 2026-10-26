@@ -18,7 +18,7 @@
       const b = sim.breakdown(o.index);
       const t = sim.terms, d = o.digits;
       const showU = o.show !== 'v', showV = o.show !== 'u';
-      const n = (x) => fmt(x, d);
+      const n = (x) => fmt(x, d).replace('-', '−');
       const sgn = (x) => (x >= 0 ? '+' : '−') + fmt(Math.abs(x), d);
       const [x, y] = sim.xy(o.index);
       this.cap.innerHTML = o.caption || (sim.dim === 0 ? '草原の家計簿' : `えらんだマス（${x + 1}${sim.dim === 2 ? ', ' + (y + 1) : ''}）の家計簿`);

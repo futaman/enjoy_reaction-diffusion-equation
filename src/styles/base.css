@@ -363,7 +363,7 @@ details.teacher > summary::before { content: "📝 "; }
   .page { padding: 12px 16px 96px; }
   .numgrid .cell { width: 3.1em; height: 2.4em; font-size: 0.85rem; }
   .equation { font-size: 1rem; }
-  .match-item { grid-template-columns: 1fr; gap: 2px; }
-  .match-item select { max-width: 100%; }
+  .match-item { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .match-item select { width: 100%; max-width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
