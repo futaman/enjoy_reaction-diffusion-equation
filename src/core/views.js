@@ -299,7 +299,8 @@
   // opts: sim, onFrame()（描画）, onStep()（1コマごと。軽い処理だけ）, onReset(), onExplode(),
   //       speeds [{label, spf}]（spf = 1フレームあたりのステップ数。0.1 なら10フレームに1回）, speed（初期 index）,
   //       autoplay, showTime, timeLabel(sim),
-  //       stopWhen(sim) → 止める理由の文字列 | false（毎コマ確認）, onStop(reason)
+  //       stopWhen(sim) → 止める理由の文字列 | false（毎コマ確認）, onStop(reason),
+  //       watch（この要素が画面に見えているときだけ動かす。既定は再生バー自身）
   class Runner {
     constructor(opts) {
       this.o = Object.assign({ speeds: [{ label: 'ゆっくり', spf: 0.25 }, { label: 'ふつう', spf: 1 }, { label: 'はやい', spf: 8 }], speed: 1, showTime: true }, opts);
@@ -316,7 +317,7 @@
       this._tick = this._tick.bind(this);
       if ('IntersectionObserver' in window) {
         this.io = new IntersectionObserver((ents) => { this.visible = ents.some((e) => e.isIntersecting); });
-        this.io.observe(this.el);
+        this.io.observe(this.o.watch || this.el);
       }
       this.draw();
       if (this.o.autoplay) this.play();
@@ -325,6 +326,8 @@
     play() { if (this.running) return; this.running = true; this.playBtn.innerHTML = '⏸ 一時停止'; this.raf = requestAnimationFrame(this._tick); }
     pause() { this.running = false; this.playBtn.innerHTML = '▶ 再生'; cancelAnimationFrame(this.raf); }
     toggle() { this.running ? this.pause() : this.play(); }
+    // 見張る要素を変える（草原と再生バーが離れているレイアウト用）
+    watch(el) { if (this.io && el) { this.io.disconnect(); this.io.observe(el); } }
     // 速さを変える（index）。speeds を差し替えることもできる
     setSpeed(i, speeds) {
       if (speeds) this.o.speeds = speeds;

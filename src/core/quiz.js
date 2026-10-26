@@ -1,6 +1,7 @@
 // 問題の部品。章からは ctx.quiz(spec) で使う（番号付けと進み具合の記録は ctx が行う）。
 //
-// 共通: { id, type, q（HTML）, hints:[HTML…最大3], explain（正解後の解説 HTML）, answerText（答えを見るで出す HTML）}
+// 共通: { id, type, q（HTML）, hints:[HTML…最大3], explain（正解後の解説 HTML）, answerText（答えを見るで出す HTML）,
+//        onHint(n)（n 個目のヒントを開いたとき）}
 // type:
 //   choice  { options:[{text, correct, why}] }              why = その選択肢を選んだときの説明（誤答の理由）
 //   predict { options:[{text, correct, why}], observe(), observeLabel }  予想→観察→説明。観察したらクリア
@@ -167,6 +168,7 @@
       const btn = hints.length ? RD.ui.button(`💡 ヒント（0/${hints.length}）`, () => {
         area.appendChild(h('div', { class: 'hint', html: `<b>ヒント${shown + 1}</b>　${hints[shown]}` }));
         shown++;
+        spec.onHint && spec.onHint(shown);
         btn.innerHTML = `💡 ヒント（${shown}/${hints.length}）`;
         if (shown >= hints.length) { btn.remove(); if (ansBtn) btns.appendChild(ansBtn); }
       }, { small: true }) : null;

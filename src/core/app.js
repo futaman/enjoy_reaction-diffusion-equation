@@ -4,6 +4,7 @@
 //   RD.registerChapter({
 //     id: 'ch1', no: 1, title: '変化の速さ', desc: 'トップに出す1行説明', goal: 'この章のねらい',
 //     required: 4,                 // クリアに必要な正解数（0 ならクリア条件なし）
+//     isCleared(solvedIds) { },    // 省略可。正解数ではなく、どの問題を解いたかでクリアを決めたいとき
 //     render(root, ctx) { ... },  // root に中身を追加する
 //   });
 //
@@ -116,7 +117,8 @@
       const p = RD.progress.of(c.id);
       if (c.required) {
         const n = Math.min(p.solved.length, c.required);
-        if (!p.cleared && n >= c.required) { RD.progress.setCleared(c.id); RD.ui.toast('🎉 この章をクリアしました！'); }
+        const done = c.isCleared ? c.isCleared(p.solved) : n >= c.required;
+        if (!p.cleared && done) { RD.progress.setCleared(c.id); RD.ui.toast('🎉 この章をクリアしました！'); }
         const cleared = RD.progress.of(c.id).cleared;
         progEl.textContent = cleared ? '✓ この章はクリア済み' : `クリアまで：${n} / ${c.required} 問`;
         progEl.classList.toggle('cleared', cleared);
