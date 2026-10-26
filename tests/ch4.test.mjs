@@ -107,3 +107,8 @@ test('予想5：でこぼこ（ランダム）にまいても、拡散だけな�
   assert.ok(r1[1] - r1[0] < 0.02 * (r0[1] - r0[0]), `差が縮む ${r1}`);
   near(total(s), t0, 0.5);
 });
+
+test('本文：画面の位置に頼った言い方をしない（design.md 3.2）', () => {
+  const src = readFileSync(join(ROOT, 'src/chapters/ch4.js'), 'utf8');
+  for (const w of ['下のカラーバー', '上の意味', '下のデモ', '右のデモ', 'このデモ']) assert.ok(!src.includes(w), `「${w}」が残っている`);
+});

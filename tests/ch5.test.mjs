@@ -112,3 +112,20 @@ test('結果は Δt を小さくしても変わらない（Δt=1 のコマ送り
     assert.ok(coexist(run0D({ ...D.LAB, dt, n })));
   }
 });
+
+test('本文：「1コマあたり」は「この章では1コマ＝時間1」とセットで書く（T22、第6章以降の Δt = 0.8 と食いちがわない）', () => {
+  const src = readFileSync(join(ROOT, 'src/chapters/ch5.js'), 'utf8');
+  assert.equal(D.DT, 1);
+  assert.match(src, /この章では1コマ＝時間1/);
+});
+
+test('本文：画面の位置に頼った言い方をしない（design.md 3.2）', () => {
+  const src = readFileSync(join(ROOT, 'src/chapters/ch5.js'), 'utf8');
+  for (const w of ['下の<b>家計簿', '下の「もっと詳しく」', '下の家計簿', '下のデモ', '右のデモ']) assert.ok(!src.includes(w), `「${w}」が残っている`);
+});
+
+test('ステップ実験：式の項を切り替えたら、はじめからやり直す（はみ出しで止まったあとも再生できる）', () => {
+  const src = readFileSync(join(ROOT, 'src/chapters/ch5.js'), 'utf8');
+  const body = src.slice(src.indexOf('eq0 = new RD.Equation'), src.indexOf('lab.onFrame = () => ledger0.update()'));
+  assert.match(body, /lab\.restart\(\)/);
+});
