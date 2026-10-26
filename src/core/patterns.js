@@ -26,7 +26,7 @@
       kind: 'still',
       seed: 'random',
       steps: 2500,
-      box: { fMin: 0.0275, fMax: 0.0305, kMin: 0.0563, kMax: 0.0577 },
+      box: { fMin: 0.0275, fMax: 0.0305, kMin: 0.0563, kMax: 0.0574 },
       hint: '水玉と同じくらいの F のまま、k を少し小さくしてみましょう。点がつながって線になります。',
     },
     {

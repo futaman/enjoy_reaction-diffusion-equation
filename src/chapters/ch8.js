@@ -91,7 +91,7 @@
           }
         },
         onReset: () => { sim.seed(seedStyle); say(''); },
-        onExplode: () => say('計算がこわれてしまいました（D × dt が大きすぎるかも）。「↺ はじめから」でやり直しましょう。', true),
+        onExplode: () => say('計算がこわれてしまいました（D × Δt が大きすぎるかも）。「↺ はじめから」でやり直しましょう。', true),
       });
       const toolSeg = RD.ui.segmented([{ value: 'rabbit', label: '🐇 ウサギを放す' }, { value: 'erase', label: '🧽 消しゴム' }, { value: 'look', label: '🔍 値を見る' }], tool, (t) => {
         tool = t;
@@ -127,7 +127,7 @@
       function setParam(key, v, from) {
         if (key === 'Du' || key === 'Dv') {
           const c = clampD(v);
-          if (c !== v) say(`D × dt が 1 をこえると計算がこわれるので、${key === 'Du' ? 'Du' : 'Dv'} は ${fmt(c, 2)} にしました。`, true);
+          if (c !== v) say(`D × Δt が 1 をこえると計算がこわれるので、${key === 'Du' ? 'Du' : 'Dv'} は ${fmt(c, 2)} にしました。`, true);
           v = c;
         }
         sim.setParams({ [key]: v });
@@ -162,6 +162,8 @@
       let mapEl = null;
       if (RD.FkMap) {
         mapObj = new RD.FkMap({ F: sim.F, k: sim.k, palette, zoom: true, boxes: boxes(), onPick: (F, k) => { sim.setParams({ F, k }); if (reseedOnMap) sim.seed(seedStyle); sync(); view.render(); } });
+        const m = mapObj;
+        ctx.onCleanup(() => m.destroy && m.destroy());
         const modeSeg = RD.ui.segmented([{ value: 'atlas', label: '模様の見本' }, { value: 'country', label: '国の色分け' }], 'atlas', (m) => mapObj.setMode(m));
         const zoomSeg = RD.ui.segmented([{ value: 'all', label: '全体' }, { value: 'zoom', label: '拡大' }], 'zoom', (z) => mapObj.setZoom(z === 'zoom'));
         mapEl = card('F-k マップ（クリックで F, k をえらぶ）',
@@ -175,7 +177,7 @@
         param('<i>k</i> ウサギの減りやすさ', 'k', 0.03, 0.075, 0.0001, 4),
         param('<i>D<sub>u</sub></i> 草の広がる速さ', 'Du', 0.05, dMax, 0.05, 2),
         param('<i>D<sub>v</sub></i> ウサギの広がる速さ', 'Dv', 0.05, dMax, 0.05, 2),
-        h('div', { class: 'muted', html: `数字の欄には、細かい値（例：0.0367）を直接入力できます。D × dt（dt = ${fmt(dt, 2)}）が 1 をこえないように、D は ${fmt(dMax, 2)} までです。` }));
+        h('div', { class: 'muted', html: `数字の欄には、細かい値（例：0.0367）を直接入力できます。D × Δt（Δt = ${fmt(dt, 2)}）が 1 をこえないように、D は ${fmt(dMax, 2)} までです。` }));
 
       // ---- 見た目と保存 ----
       const palSel = h('select', { class: 'ch8-sel', 'aria-label': '色のパレット' }, Object.entries(RD.PALETTES).map(([key, pl]) => h('option', { value: key, text: pl.name })));
@@ -267,7 +269,7 @@
       root.appendChild(teacher(
         '<p><b>ねらい：</b>第7章までの知識を使って、自分の作りたい模様に向かって数と種を選ぶこと。正解はありません。</p>' +
         '<p><b>問いかけの例：</b>「どんな模様を作りたい？ それは地図のどの国にありそう？」「種の形を変えたら、模様の種類は変わった？（T17）」「止まる模様と動く模様、どっちを作ってる？（T18）」</p>' +
-        '<p><b>よくある反応：</b>D × dt が 1 をこえるような値は入れられないようにしてあります（第3章の「配りすぎ」）。地図は Du = 1, Dv = 0.5 のときのものなので、D を変えたら地図はあくまで目安だと伝えてください。</p>'));
+        '<p><b>よくある反応：</b>D × Δt が 1 をこえるような値は入れられないようにしてあります（第3章の「配りすぎ」）。地図は Du = 1, Dv = 0.5 のときのものなので、D を変えたら地図はあくまで目安だと伝えてください。</p>'));
     },
   });
 })(window.RD = window.RD || {});

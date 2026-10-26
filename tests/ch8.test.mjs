@@ -62,3 +62,10 @@ test('プリセットの種の名前は、ラボの種の選択肢にある', ()
   for (const pt of RD.patterns) assert.ok(['center', 'random', 'noise'].includes(pt.seed), pt.id);
   for (const s of ['center', 'random', 'noise']) assert.match(src, new RegExp(`value: '${s}'`));
 });
+
+test('学習者が読む文では dt ではなく Δt と書く（第2章からの書き方）', () => {
+  // コメントを除いた文字列の中に「dt」と書いていない
+  const strings = src.replace(/\/\/.*$/gm, '').match(/(['`])(?:\\.|(?!\1)[^\\])*\1/g) || [];
+  for (const t of strings) assert.doesNotMatch(t.replace(/\$\{[^}]*\}/g, ''), /(^|[^A-Za-z])dt([^A-Za-z]|$)/, t);
+  assert.match(src, /D × Δt/);
+});
