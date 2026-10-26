@@ -1,0 +1,1847 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>草とウサギの模様ドリル</title>
+<meta name="description" content="中学数学レベルから反応拡散方程式（Gray-Scott モデル）を学び、自分で模様を作れるようになるドリル">
+<style>
+/* base.css */
+/* ===== デザイントークン ===== */
+:root {
+  --paper: #faf8f2;
+  --paper-grid: rgba(70, 110, 170, 0.07);
+  --card: #ffffff;
+  --card-2: #f4f2ec;
+  --ink: #24272c;
+  --ink-2: #5d636c;
+  --ink-3: #8a9099;
+  --line: #ddd8cb;
+  --accent: #2f68b0;
+  --accent-ink: #ffffff;
+  --accent-soft: #e5eef9;
+  --ok: #2c7a4b;
+  --ok-soft: #e3f3e8;
+  --ng: #b4462f;
+  --ng-soft: #fbe9e4;
+  --hint: #8a6a12;
+  --hint-soft: #fbf3dc;
+  --teacher: #7a4a9a;
+  --teacher-soft: #f3ebf8;
+
+  /* 式の項の色（M05） */
+  --t-diff: #2f68b0;
+  --t-feed: #3a8a35;
+  --t-react: #d27a1e;
+  --t-decay: #8a4fb5;
+  --t-u: #3a8a35;   /* 草 */
+  --t-v: #9a5a2a;   /* ウサギ */
+
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --font: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  --font-math: "Cambria Math", "STIX Two Math", "Times New Roman", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1a1c20;
+    --paper-grid: rgba(140, 170, 220, 0.05);
+    --card: #23262b;
+    --card-2: #2b2f35;
+    --ink: #e9e6df;
+    --ink-2: #b3b7be;
+    --ink-3: #868b93;
+    --line: #3a3e45;
+    --accent: #7fb0f0;
+    --accent-ink: #10213a;
+    --accent-soft: #233348;
+    --ok: #6cc690;
+    --ok-soft: #1f3528;
+    --ng: #f08a72;
+    --ng-soft: #3d2620;
+    --hint: #e3c062;
+    --hint-soft: #36301c;
+    --teacher: #c79ae6;
+    --teacher-soft: #2f2539;
+    --t-diff: #7fb0f0;
+    --t-feed: #7ccd73;
+    --t-react: #f4a85a;
+    --t-decay: #c49aea;
+    --t-u: #7ccd73;
+    --t-v: #e0a070;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #1a1c20;
+  --paper-grid: rgba(140, 170, 220, 0.05);
+  --card: #23262b;
+  --card-2: #2b2f35;
+  --ink: #e9e6df;
+  --ink-2: #b3b7be;
+  --ink-3: #868b93;
+  --line: #3a3e45;
+  --accent: #7fb0f0;
+  --accent-ink: #10213a;
+  --accent-soft: #233348;
+  --ok: #6cc690;
+  --ok-soft: #1f3528;
+  --ng: #f08a72;
+  --ng-soft: #3d2620;
+  --hint: #e3c062;
+  --hint-soft: #36301c;
+  --teacher: #c79ae6;
+  --teacher-soft: #2f2539;
+  --t-diff: #7fb0f0;
+  --t-feed: #7ccd73;
+  --t-react: #f4a85a;
+  --t-decay: #c49aea;
+  --t-u: #7ccd73;
+  --t-v: #e0a070;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  color-scheme: dark;
+}
+
+/* ===== ベース ===== */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--paper-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--paper-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  overflow-x: hidden;
+}
+a { color: var(--accent); }
+button, input, select { font: inherit; color: inherit; }
+img, canvas { max-width: 100%; }
+h1, h2, h3, h4 { line-height: 1.4; margin: 1.4em 0 0.5em; }
+h1 { font-size: 1.6rem; }
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.1rem; }
+p { margin: 0.6em 0; }
+ruby rt { font-size: 0.55em; color: var(--ink-2); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ===== ヘッダー ===== */
+.app-header {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 16px;
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+}
+.app-header .brand { font-weight: 700; text-decoration: none; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-header .spacer { flex: 1; }
+.app-header .icon-btn { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 2px 10px; cursor: pointer; font-size: 0.9rem; }
+
+.page { max-width: 1120px; margin: 0 auto; padding: 16px 16px 96px; }
+
+/* ===== 章の頭とお尻 ===== */
+.ch-head { margin: 8px 0 20px; }
+.ch-head .ch-no { color: var(--accent); font-weight: 700; font-size: 0.95rem; }
+.ch-head h1 { margin: 0.1em 0 0.3em; }
+.ch-goal {
+  display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 10px 14px; box-shadow: var(--shadow);
+}
+.ch-goal .label { font-weight: 700; color: var(--accent); white-space: nowrap; }
+.ch-progress { margin-left: auto; font-size: 0.9rem; color: var(--ink-2); white-space: nowrap; }
+.ch-progress.cleared { color: var(--ok); font-weight: 700; }
+.ch-nav { display: flex; gap: 8px; justify-content: space-between; margin-top: 40px; flex-wrap: wrap; }
+
+/* ===== ステップ（左：解説、右：デモ） ===== */
+.step {
+  display: grid; grid-template-columns: 1fr; gap: 16px;
+  margin: 28px 0;
+}
+.step > h2 { grid-column: 1 / -1; margin: 0; padding-bottom: 4px; border-bottom: 2px solid var(--line); }
+.step-text, .step-demo { min-width: 0; }
+@media (min-width: 960px) {
+  .step.two { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; }
+  .step.two .step-demo { position: sticky; top: 64px; }
+}
+
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px 16px; box-shadow: var(--shadow);
+}
+.card + .card { margin-top: 12px; }
+.card-title { font-weight: 700; font-size: 0.95rem; margin: 0 0 8px; color: var(--ink-2); }
+
+.note { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 8px 14px; border-radius: 0 8px 8px 0; margin: 12px 0; }
+.note.story { border-color: var(--t-u); background: color-mix(in srgb, var(--t-u) 10%, var(--card)); }
+.note.warn { border-color: var(--ng); background: var(--ng-soft); }
+.note.mystery { border-color: var(--t-decay); background: color-mix(in srgb, var(--t-decay) 12%, var(--card)); }
+.note > :first-child { margin-top: 0; } .note > :last-child { margin-bottom: 0; }
+
+details.more, details.teacher {
+  border: 1px dashed var(--line); border-radius: var(--radius); margin: 12px 0; background: var(--card);
+}
+details.more > summary, details.teacher > summary {
+  cursor: pointer; padding: 8px 14px; font-weight: 700; font-size: 0.95rem; color: var(--ink-2); list-style: none;
+}
+details.more > summary::-webkit-details-marker, details.teacher > summary::-webkit-details-marker { display: none; }
+details.more > summary::before { content: "＋ "; }
+details.more[open] > summary::before { content: "− "; }
+details.more > .body, details.teacher > .body { padding: 0 14px 10px; }
+details.teacher { border-color: color-mix(in srgb, var(--teacher) 45%, transparent); background: var(--teacher-soft); }
+details.teacher > summary { color: var(--teacher); }
+details.teacher > summary::before { content: "📝 "; }
+
+/* ===== 式 ===== */
+.math { font-family: var(--font-math); font-style: normal; white-space: nowrap; }
+.math i, i.v { font-family: var(--font-math); font-style: italic; }
+.frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; line-height: 1.15; margin: 0 2px; font-family: var(--font-math); }
+.frac > span:first-child { border-bottom: 1px solid currentColor; padding: 0 2px; }
+.frac > span:last-child { padding: 0 2px; }
+.math-block { display: block; text-align: center; font-size: 1.2rem; margin: 12px 0; overflow-x: auto; padding: 4px 0; }
+.t-diff { color: var(--t-diff); }
+.t-feed { color: var(--t-feed); }
+.t-react { color: var(--t-react); }
+.t-decay { color: var(--t-decay); }
+.t-u { color: var(--t-u); }
+.t-v { color: var(--t-v); }
+
+.equation { font-family: var(--font-math); font-size: 1.15rem; line-height: 2.4; overflow-x: auto; }
+.equation .eq-line { white-space: nowrap; }
+.equation .term {
+  display: inline-block; padding: 0 6px; margin: 0 1px; border-radius: 6px; border: 1.5px solid currentColor;
+  background: color-mix(in srgb, currentColor 9%, transparent); line-height: 1.6;
+}
+.equation.interactive .term { cursor: pointer; user-select: none; }
+.equation .term.off { opacity: 0.35; text-decoration: line-through; border-style: dashed; }
+.equation .legend { font-family: var(--font); font-size: 0.85rem; line-height: 1.6; display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; }
+.equation .legend span::before { content: "■ "; }
+
+/* ===== 操作部品 ===== */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; justify-content: center;
+  border: 1px solid var(--line); background: var(--card); border-radius: 8px;
+  padding: 6px 14px; cursor: pointer; min-height: 38px; line-height: 1.3; text-decoration: none; color: var(--ink);
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.btn.small { min-height: 30px; padding: 2px 10px; font-size: 0.9rem; }
+.btn.on { background: var(--accent-soft); border-color: var(--accent); }
+.btn[disabled] { opacity: 0.5; cursor: default; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row + .row { margin-top: 8px; }
+
+.slider { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: center; margin: 6px 0; }
+.slider label { font-size: 0.92rem; white-space: nowrap; }
+.slider input[type=range] { width: 100%; min-width: 0; accent-color: var(--accent); }
+.slider output { font-family: var(--font-mono); font-size: 0.9rem; min-width: 4.5em; text-align: right; }
+
+.toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.95rem; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: var(--card); padding: 4px 12px; cursor: pointer; min-height: 34px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--accent); color: var(--accent-ink); }
+
+/* 数字のマス */
+.numgrid { display: inline-grid; gap: 3px; font-family: var(--font-mono); }
+.numgrid .cell {
+  width: 3.6em; height: 2.6em; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--card); font-size: 0.92rem; position: relative;
+}
+.numgrid .cell.hl { outline: 3px solid var(--accent); outline-offset: -1px; z-index: 1; }
+.numgrid .cell.dim { opacity: 0.45; }
+.numgrid .cell input { width: 100%; height: 100%; border: 0; background: transparent; text-align: center; font: inherit; padding: 0; }
+.numgrid .cell.ok { border-color: var(--ok); background: var(--ok-soft); }
+.numgrid .cell.ng { border-color: var(--ng); background: var(--ng-soft); }
+
+/* ===== シミュレーション表示 ===== */
+.sim-view { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+.sim-canvas-wrap { position: relative; width: 100%; max-width: 480px; margin: 0 auto; }
+.sim-canvas-wrap canvas { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); touch-action: none; image-rendering: pixelated; background: #000; }
+.sim-canvas-wrap.brush canvas { cursor: crosshair; }
+.colorbar { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-size: 0.82rem; color: var(--ink-2); max-width: 480px; margin: 0 auto; width: 100%; }
+.colorbar .bar { height: 10px; border-radius: 5px; border: 1px solid var(--line); }
+.colorbar .cb-title { grid-column: 1 / -1; text-align: center; margin-bottom: -6px; }
+.readout { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-2); text-align: center; min-height: 1.5em; }
+.graph canvas, .bars canvas { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); background: var(--card); touch-action: none; }
+.graph-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.85rem; justify-content: center; }
+.graph-legend span::before { content: "━ "; }
+.playbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }
+.playbar .time { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-2); min-width: 7em; text-align: center; }
+
+/* ===== 家計簿 ===== */
+.ledger { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.ledger th, .ledger td { padding: 3px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+.ledger th:first-child, .ledger td:first-child { text-align: left; }
+.ledger thead th { font-size: 0.85rem; color: var(--ink-2); }
+.ledger td.num { font-family: var(--font-mono); white-space: nowrap; }
+.ledger tr.sum td { font-weight: 700; border-top: 2px solid var(--ink-3); }
+.ledger tr.next td { font-weight: 700; background: var(--accent-soft); }
+.ledger tr.off td { opacity: 0.4; text-decoration: line-through; }
+.ledger .cap { font-size: 0.85rem; color: var(--ink-2); margin-bottom: 4px; }
+.ledger-wrap { overflow-x: auto; }
+
+/* ===== 問題 ===== */
+.quiz { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin: 18px 0; box-shadow: var(--shadow); }
+.quiz.solved { border-color: color-mix(in srgb, var(--ok) 60%, var(--line)); }
+.quiz-head { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.quiz-badge { background: var(--accent); color: var(--accent-ink); border-radius: 6px; padding: 0 8px; font-weight: 700; font-size: 0.85rem; }
+.quiz-badge.predict { background: var(--t-decay); }
+.quiz-state { margin-left: auto; font-size: 0.85rem; color: var(--ok); font-weight: 700; }
+.quiz-q > :first-child { margin-top: 0; }
+.choices { display: grid; gap: 8px; margin: 10px 0; }
+.choice { text-align: left; border: 1.5px solid var(--line); background: var(--card); border-radius: 8px; padding: 8px 12px; cursor: pointer; line-height: 1.6; }
+.choice:hover { border-color: var(--accent); }
+.choice.picked-ok { border-color: var(--ok); background: var(--ok-soft); }
+.choice.picked-ng { border-color: var(--ng); background: var(--ng-soft); }
+.choice.reveal { border-color: var(--ok); border-style: dashed; }
+.answer-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+.answer-row input[type=text] { width: 9em; padding: 6px 10px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--card); font-family: var(--font-mono); }
+.answer-row input.ok { border-color: var(--ok); background: var(--ok-soft); }
+.answer-row input.ng { border-color: var(--ng); background: var(--ng-soft); }
+.fill-list { display: grid; gap: 6px; margin: 10px 0; }
+.fill-item { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fill-item .lbl { min-width: 9em; }
+.match-list { display: grid; gap: 8px; margin: 10px 0; }
+.match-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.match-item select { padding: 6px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); max-width: 14em; }
+.match-item select.ok { border-color: var(--ok); } .match-item select.ng { border-color: var(--ng); }
+.feedback { border-radius: 8px; padding: 8px 12px; margin-top: 10px; }
+.feedback:empty { display: none; }
+.feedback.ok { background: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); }
+.feedback.ng { background: var(--ng-soft); border: 1px solid color-mix(in srgb, var(--ng) 40%, transparent); }
+.feedback.info { background: var(--accent-soft); }
+.feedback > :first-child { margin-top: 0; } .feedback > :last-child { margin-bottom: 0; }
+.hints { margin-top: 8px; }
+.hint { background: var(--hint-soft); border-left: 4px solid var(--hint); padding: 6px 12px; border-radius: 0 8px 8px 0; margin: 6px 0; font-size: 0.95rem; }
+.hint b { color: var(--hint); }
+
+/* ===== 電卓 ===== */
+.calc-fab { position: fixed; right: 16px; bottom: 16px; z-index: 30; border-radius: 999px; box-shadow: var(--shadow); }
+.calc-panel {
+  position: fixed; right: 16px; bottom: 64px; z-index: 30; width: 240px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.18);
+}
+.calc-display { font-family: var(--font-mono); text-align: right; background: var(--card-2); border-radius: 6px; padding: 6px 8px; min-height: 3.2em; word-break: break-all; }
+.calc-display .expr { color: var(--ink-2); font-size: 0.8rem; min-height: 1.2em; }
+.calc-display .val { font-size: 1.2rem; }
+.calc-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+.calc-keys button { min-height: 38px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); cursor: pointer; }
+.calc-keys button.op { background: var(--accent-soft); }
+.calc-keys button.eq { background: var(--accent); color: var(--accent-ink); }
+
+/* ===== トップ ===== */
+.hero { text-align: center; padding: 24px 0 8px; }
+.hero h1 { font-size: 1.9rem; margin: 0.2em 0; }
+.hero .sub { color: var(--ink-2); }
+.cast { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 16px 0; }
+.cast .who { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 16px; box-shadow: var(--shadow); }
+.ch-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; margin: 16px 0; }
+.ch-card { display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; box-shadow: var(--shadow); position: relative; }
+.ch-card:hover { border-color: var(--accent); }
+.ch-card .no { font-size: 0.85rem; color: var(--accent); font-weight: 700; }
+.ch-card .ttl { font-weight: 700; font-size: 1.05rem; }
+.ch-card .desc { font-size: 0.88rem; color: var(--ink-2); line-height: 1.6; }
+.ch-card .mark { position: absolute; top: 10px; right: 12px; font-size: 0.85rem; color: var(--ink-3); }
+.ch-card.cleared .mark { color: var(--ok); font-weight: 700; }
+.ch-card.last { outline: 2px solid var(--accent); }
+.collection { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.coll-item { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px; font-size: 0.82rem; text-align: center; text-decoration: none; color: var(--ink); }
+.coll-item img { width: 100%; aspect-ratio: 1; border-radius: 4px; display: block; image-rendering: pixelated; }
+.coll-item.locked { opacity: 0.5; border-style: dashed; }
+.coll-item .ph { width: 100%; aspect-ratio: 1; border-radius: 4px; display: flex; align-items: center; justify-content: center; background: var(--card-2); color: var(--ink-3); font-size: 1.4rem; }
+.muted { color: var(--ink-2); font-size: 0.9rem; }
+.center { text-align: center; }
+.mt0 { margin-top: 0; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 8px 18px; border-radius: 999px; z-index: 50; font-size: 0.95rem; box-shadow: var(--shadow); }
+
+@media (max-width: 520px) {
+  body { font-size: 15.5px; }
+  h1 { font-size: 1.4rem; }
+  .page { padding: 12px 16px 96px; }
+  .numgrid .cell { width: 3.1em; height: 2.4em; font-size: 0.85rem; }
+  .equation { font-size: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<noscript>このドリルを使うには JavaScript を有効にしてください。</noscript>
+<script>
+"use strict";
+// core/ui.js
+// UI ヘルパー。DOM を組み立てる小さな関数群。
+(function (RD) {
+  // h('div', {class:'x', onClick: fn, html:'<b>..</b>'}, child, [children], 'text')
+  function h(tag, props, ...children) {
+    const el = document.createElement(tag);
+    if (props) {
+      for (const [k, val] of Object.entries(props)) {
+        if (val == null || val === false) continue;
+        if (k === 'class') el.className = val;
+        else if (k === 'style' && typeof val === 'object') Object.assign(el.style, val);
+        else if (k === 'html') el.innerHTML = val;
+        else if (k === 'text') el.textContent = val;
+        else if (k.startsWith('on') && typeof val === 'function') el.addEventListener(k.slice(2).toLowerCase(), val);
+        else if (val === true) el.setAttribute(k, '');
+        else el.setAttribute(k, val);
+      }
+    }
+    append(el, children);
+    return el;
+  }
+  function append(el, children) {
+    for (const c of children.flat(Infinity)) {
+      if (c == null || c === false) continue;
+      el.appendChild(c instanceof Node ? c : document.createTextNode(String(c)));
+    }
+    return el;
+  }
+
+  // HTML 文字列を段落に。文字列なら innerHTML、ノードならそのまま。
+  const p = (html) => h('p', { html });
+  const html = (str) => { const t = document.createElement('template'); t.innerHTML = str.trim(); return t.content; };
+
+  // 式。中身は HTML で書く（例: '<i>u</i> + 1'）
+  const math = (str) => h('span', { class: 'math', html: str });
+  const mathBlock = (str) => h('div', { class: 'math math-block', html: str });
+  // 分数の HTML 文字列（math の中で使う）
+  const frac = (top, bottom) => `<span class="frac"><span>${top}</span><span>${bottom}</span></span>`;
+  const dudt = (f = 'u') => frac(`∂<i>${f}</i>`, '∂<i>t</i>');
+
+  // 章の中の1ステップ。demo を渡すと PC で2カラムになる。
+  function step({ title, text = [], demo = null }) {
+    const el = h('section', { class: 'step' + (demo ? ' two' : '') });
+    if (title) el.appendChild(h('h2', { text: title }));
+    el.appendChild(h('div', { class: 'step-text' }, text));
+    if (demo) el.appendChild(h('div', { class: 'step-demo' }, demo));
+    return el;
+  }
+  const card = (title, ...children) => h('div', { class: 'card' }, title ? h('div', { class: 'card-title', text: title }) : null, children);
+  // kind: '' | 'story' | 'warn' | 'mystery'
+  const note = (content, kind = '') => h('div', { class: 'note ' + kind }, typeof content === 'string' ? html(content) : content);
+  const more = (title, ...children) => h('details', { class: 'more' }, h('summary', { text: title || 'もっと詳しく' }), h('div', { class: 'body' }, children.map(toNode)));
+  const teacher = (...children) => h('details', { class: 'teacher' }, h('summary', { text: '先生用メモ' }), h('div', { class: 'body' }, children.map(toNode)));
+  const toNode = (c) => (typeof c === 'string' ? html(c) : c);
+
+  function button(label, onClick, opts = {}) {
+    return h('button', { type: 'button', class: 'btn' + (opts.primary ? ' primary' : '') + (opts.small ? ' small' : ''), html: label, onClick, title: opts.title });
+  }
+  const row = (...children) => h('div', { class: 'row' }, children);
+
+  // つまみ。format で表示形式を変える。
+  function slider({ label, min, max, step = 0.01, value, format = (v) => String(v), onInput }) {
+    const id = 'sl' + Math.random().toString(36).slice(2, 8);
+    const input = h('input', { type: 'range', id, min, max, step, value });
+    const out = h('output', { for: id, text: format(+value) });
+    const el = h('div', { class: 'slider' }, h('label', { for: id, html: label }), input, out);
+    input.addEventListener('input', () => { out.textContent = format(+input.value); onInput && onInput(+input.value); });
+    return {
+      el,
+      get value() { return +input.value; },
+      set(v, fire = false) { input.value = v; out.textContent = format(+input.value); if (fire && onInput) onInput(+input.value); },
+      input,
+    };
+  }
+
+  function toggle(label, checked, onChange) {
+    const input = h('input', { type: 'checkbox' });
+    input.checked = !!checked;
+    input.addEventListener('change', () => onChange && onChange(input.checked));
+    const el = h('label', { class: 'toggle' }, input, h('span', { html: label }));
+    return { el, input, get checked() { return input.checked; }, set(v) { input.checked = v; } };
+  }
+
+  // セグメント切り替え。options: [{value, label}]
+  function segmented(options, value, onChange) {
+    const el = h('div', { class: 'seg', role: 'group' });
+    const btns = options.map((o) => {
+      const b = h('button', { type: 'button', html: o.label, onClick: () => set(o.value, true) });
+      el.appendChild(b);
+      return b;
+    });
+    function set(v, fire) {
+      value = v;
+      options.forEach((o, i) => btns[i].classList.toggle('on', o.value === v));
+      if (fire && onChange) onChange(v);
+    }
+    set(value, false);
+    return { el, set, get value() { return value; } };
+  }
+
+  // 数字のマス。values は2次元配列（null は空欄）。editable なら入力欄になる。
+  // color(v) で背景色の CSS 文字列を返すと色が付く。
+  function numGrid({ values, editable = false, format = (v) => String(v), color = null, highlight = null, onChange = null, onCellClick = null }) {
+    const rows = values.length, cols = values[0].length;
+    const el = h('div', { class: 'numgrid', style: { gridTemplateColumns: `repeat(${cols}, auto)` } });
+    const cells = [];
+    for (let r = 0; r < rows; r++) {
+      cells.push([]);
+      for (let c = 0; c < cols; c++) {
+        const cell = h('div', { class: 'cell' });
+        if (onCellClick) { cell.style.cursor = 'pointer'; cell.addEventListener('click', () => onCellClick(r, c)); }
+        el.appendChild(cell);
+        cells[r].push(cell);
+      }
+    }
+    let cur = values.map((r) => r.slice());
+    function render() {
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const cell = cells[r][c], v = cur[r][c];
+        const isInput = editable === true || (typeof editable === 'function' && editable(r, c));
+        cell.classList.remove('ok', 'ng');
+        if (isInput) {
+          let inp = cell.querySelector('input');
+          if (!inp) {
+            cell.textContent = '';
+            inp = h('input', { type: 'text', inputmode: 'decimal', 'aria-label': `${r + 1}行${c + 1}列` });
+            inp.addEventListener('input', () => { cur[r][c] = RD.ui.parseNum(inp.value); onChange && onChange(cur, r, c); });
+            cell.appendChild(inp);
+          }
+          if (v != null && document.activeElement !== inp) inp.value = format(v);
+        } else {
+          cell.textContent = v == null ? '' : format(v);
+        }
+        cell.style.background = color && v != null && !isInput ? color(v) : '';
+        cell.classList.toggle('hl', !!(highlight && highlight(r, c)));
+      }
+    }
+    render();
+    return {
+      el,
+      get values() { return cur; },
+      setValues(vals) { cur = vals.map((r) => r.slice()); render(); },
+      setHighlight(fn) { highlight = fn; render(); },
+      mark(r, c, ok) { cells[r][c].classList.remove('ok', 'ng'); if (ok != null) cells[r][c].classList.add(ok ? 'ok' : 'ng'); },
+      cell: (r, c) => cells[r][c],
+      render,
+    };
+  }
+
+  // 全角数字やマイナス記号も受け付ける数値パース。失敗したら NaN。
+  function parseNum(s) {
+    if (s == null) return NaN;
+    s = String(s).trim()
+      .replace(/[０-９]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 0xfee0))
+      .replace(/[．。]/g, '.').replace(/[−ー―‐－]/g, '-').replace(/[＋]/g, '+').replace(/,/g, '');
+    if (s === '' || !/^[+-]?(\d+\.?\d*|\.\d+)$/.test(s)) return NaN;
+    return parseFloat(s);
+  }
+
+  // 小数を見やすく（末尾の0を落とす）
+  function fmt(v, digits = 4) {
+    if (!isFinite(v)) return String(v);
+    const s = (+v).toFixed(digits);
+    return s.includes('.') ? s.replace(/\.?0+$/, '') : s;
+  }
+
+  function toast(msg, ms = 2200) {
+    const t = h('div', { class: 'toast', role: 'status', text: msg });
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), ms);
+  }
+
+  // CSS 変数の値を読む（キャンバス描画で使う）
+  const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  RD.ui = { h, append, p, html, math, mathBlock, frac, dudt, step, card, note, more, teacher, button, row, slider, toggle, segmented, numGrid, parseNum, fmt, toast, cssVar };
+})(window.RD = window.RD || {});
+
+
+// core/store.js
+// 進み具合・コレクション・設定の保存。localStorage が使えなくても動く（メモリに保持）。
+(function (RD) {
+  const PREFIX = 'rd-drill:';
+  const mem = {};
+
+  function get(key, def) {
+    try {
+      const s = localStorage.getItem(PREFIX + key);
+      if (s != null) return JSON.parse(s);
+    } catch (e) { /* 使えない環境 */ }
+    return key in mem ? mem[key] : def;
+  }
+  function set(key, val) {
+    mem[key] = val;
+    try { localStorage.setItem(PREFIX + key, JSON.stringify(val)); } catch (e) { /* 容量超過など */ }
+  }
+  function remove(key) {
+    delete mem[key];
+    try { localStorage.removeItem(PREFIX + key); } catch (e) { /* noop */ }
+  }
+
+  // 進み具合: { [chapterId]: { solved: [quizId...], cleared: bool } }
+  const progress = {
+    all() { return get('progress', {}); },
+    of(ch) { const p = this.all()[ch]; return p ? { solved: p.solved || [], cleared: !!p.cleared } : { solved: [], cleared: false }; },
+    isSolved(ch, qid) { return this.of(ch).solved.includes(qid); },
+    markSolved(ch, qid) {
+      const all = this.all();
+      const p = all[ch] || (all[ch] = { solved: [], cleared: false });
+      if (!p.solved.includes(qid)) p.solved.push(qid);
+      set('progress', all);
+    },
+    setCleared(ch) {
+      const all = this.all();
+      const p = all[ch] || (all[ch] = { solved: [], cleared: false });
+      p.cleared = true;
+      set('progress', all);
+    },
+    reset() { remove('progress'); remove('collection'); remove('last'); },
+  };
+
+  // コレクション: [{ id, name, F, k, Du, Dv, palette, thumb, source, date }]
+  // source: 'challenge'（第7章で再現した模様。id は模様の id）| 'lab'（自作）
+  const collection = {
+    list() { return get('collection', []); },
+    has(id) { return this.list().some((c) => c.id === id); },
+    add(item) {
+      const list = this.list().filter((c) => c.id !== item.id);
+      list.push(Object.assign({ date: Date.now() }, item));
+      // サムネイルが大きくなりすぎないように上限を設ける
+      while (list.length > 60) list.shift();
+      set('collection', list);
+    },
+    remove(id) { set('collection', this.list().filter((c) => c.id !== id)); },
+  };
+
+  RD.store = { get, set, remove };
+  RD.progress = progress;
+  RD.collection = collection;
+})(window.RD = window.RD || {});
+
+
+// core/sim.js
+// Gray-Scott モデルのシミュレーションエンジン。DOM には触らない（Node のテストでも動く）。
+//
+//   ∂u/∂t = Du∇²u − uv² + F(1−u)
+//   ∂v/∂t = Dv∇²v + uv² − (F+k)v
+//
+// この教材での ∇² は「まわりの平均 − 自分」。
+//   2次元: 上下左右4マスの平均 − 自分 / 1次元: 左右2マスの平均 − 自分 / 0次元（1マス）: 0
+// 端はパックマン型（反対側とつながっている）。時間はオイラー法で進める。
+(function (RD) {
+  const TERM_KEYS = ['diff', 'feed', 'react', 'decay'];
+
+  class Sim {
+    // w×h のマス。h=1 で1次元、w=h=1 で0次元（1か所だけ）。
+    constructor(opts = {}) {
+      const d = RD.SIM_DEFAULTS || {};
+      this.w = opts.w || 1;
+      this.h = opts.h || 1;
+      this.n = this.w * this.h;
+      this.Du = opts.Du ?? d.Du ?? 1.0;
+      this.Dv = opts.Dv ?? d.Dv ?? 0.5;
+      this.F = opts.F ?? 0.04;
+      this.k = opts.k ?? 0.06;
+      this.dt = opts.dt ?? d.dt ?? 0.8; // Du×dt = 1 ちょうどだとマス目状に振動して壊れるので、少し小さめ
+      this.terms = Object.assign({ diff: true, feed: true, react: true, decay: true }, opts.terms || {});
+      this.u = new Float32Array(this.n);
+      this.v = new Float32Array(this.n);
+      this._u = new Float32Array(this.n);
+      this._v = new Float32Array(this.n);
+      this.time = 0;
+      this.steps = 0;
+      this.exploded = false;
+      this.reset();
+    }
+
+    get dim() { return this.n === 1 ? 0 : this.h === 1 ? 1 : 2; }
+    idx(x, y = 0) { return y * this.w + x; }
+    xy(i) { return [i % this.w, Math.floor(i / this.w)]; }
+
+    reset(u0 = 1, v0 = 0) {
+      this.u.fill(u0); this.v.fill(v0);
+      this.time = 0; this.steps = 0; this.exploded = false;
+      return this;
+    }
+
+    // まわりの平均（端はパックマン型）
+    neighborAvg(a, i) {
+      const { w, h } = this;
+      if (this.n === 1) return a[i];
+      const x = i % w, y = (i - x) / w;
+      const l = a[y * w + (x === 0 ? w - 1 : x - 1)];
+      const r = a[y * w + (x === w - 1 ? 0 : x + 1)];
+      if (h === 1) return (l + r) / 2;
+      const up = a[(y === 0 ? h - 1 : y - 1) * w + x];
+      const dn = a[(y === h - 1 ? 0 : y + 1) * w + x];
+      return (l + r + up + dn) / 4;
+    }
+    lap(a, i) { return this.neighborAvg(a, i) - a[i]; }
+
+    // 1マスの「家計簿」。各項の値と、次のコマの値。
+    breakdown(i) {
+      const { u, v, F, k, Du, Dv, dt, terms } = this;
+      const ui = u[i], vi = v[i];
+      const avgU = this.neighborAvg(u, i), avgV = this.neighborAvg(v, i);
+      const lapU = avgU - ui, lapV = avgV - vi;
+      const diffU = terms.diff ? Du * lapU : 0;
+      const diffV = terms.diff ? Dv * lapV : 0;
+      const feed = terms.feed ? F * (1 - ui) : 0;
+      const react = terms.react ? ui * vi * vi : 0;
+      const decay = terms.decay ? (F + k) * vi : 0;
+      const dudt = diffU - react + feed;
+      const dvdt = diffV + react - decay;
+      return { u: ui, v: vi, avgU, avgV, lapU, lapV, diffU, diffV, feed, react, decay, dudt, dvdt, uNext: ui + dt * dudt, vNext: vi + dt * dvdt, dt };
+    }
+
+    step(count = 1) {
+      for (let s = 0; s < count; s++) {
+        if (this.dim === 2) this._step2d(); else this._stepGeneric();
+        this.time += this.dt;
+        this.steps++;
+      }
+      return this;
+    }
+
+    _stepGeneric() {
+      const { n, u, v, _u, _v } = this;
+      for (let i = 0; i < n; i++) {
+        const b = this.breakdown(i);
+        _u[i] = b.uNext; _v[i] = b.vNext;
+      }
+      this._swap();
+    }
+
+    // 2次元の高速版（breakdown と同じ計算）
+    _step2d() {
+      const { w, h, u, v, _u, _v, dt } = this;
+      const diff = this.terms.diff ? 1 : 0, feedOn = this.terms.feed ? 1 : 0, reactOn = this.terms.react ? 1 : 0, decayOn = this.terms.decay ? 1 : 0;
+      const Du = this.Du * diff * 0.25, Dv = this.Dv * diff * 0.25;
+      const DuS = this.Du * diff, DvS = this.Dv * diff;
+      const F = this.F, Fk = this.F + this.k;
+      for (let y = 0; y < h; y++) {
+        const row = y * w;
+        const up = (y === 0 ? h - 1 : y - 1) * w;
+        const dn = (y === h - 1 ? 0 : y + 1) * w;
+        for (let x = 0; x < w; x++) {
+          const i = row + x;
+          const xl = row + (x === 0 ? w - 1 : x - 1);
+          const xr = row + (x === w - 1 ? 0 : x + 1);
+          const ui = u[i], vi = v[i];
+          const sumU = u[xl] + u[xr] + u[up + x] + u[dn + x];
+          const sumV = v[xl] + v[xr] + v[up + x] + v[dn + x];
+          const uvv = reactOn * ui * vi * vi;
+          _u[i] = ui + dt * (Du * sumU - DuS * ui - uvv + feedOn * F * (1 - ui));
+          _v[i] = vi + dt * (Dv * sumV - DvS * vi + uvv - decayOn * Fk * vi);
+        }
+      }
+      this._swap();
+    }
+
+    _swap() {
+      [this.u, this._u] = [this._u, this.u];
+      [this.v, this._v] = [this._v, this.v];
+      // 爆発チェック（数マスだけ見る）
+      const a = this.u[0], b = this.v[(this.n / 2) | 0];
+      if (!isFinite(a) || !isFinite(b) || Math.abs(a) > 1e6 || Math.abs(b) > 1e6) this.exploded = true;
+    }
+
+    // ---- 種まき ----
+    // 正方形の種。r は半径（マス）。
+    seedSquare(cx, cy, r = 4, val = { u: 0.5, v: 0.25 }) {
+      const { w, h } = this;
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        const x = (cx + dx + w * 4) % w, y = (cy + dy + h * 4) % h;
+        const i = y * w + x;
+        this.u[i] = val.u; this.v[i] = val.v;
+      }
+      return this;
+    }
+    // 円形のブラシ（ラボ用）。value: 'rabbit' で種を置く、'erase' で消す
+    paint(cx, cy, r, mode = 'rabbit') {
+      const { w, h } = this;
+      const R = Math.max(0.5, r);
+      for (let dy = -Math.ceil(R); dy <= Math.ceil(R); dy++) for (let dx = -Math.ceil(R); dx <= Math.ceil(R); dx++) {
+        if (dx * dx + dy * dy > R * R) continue;
+        const x = ((Math.round(cx) + dx) % w + w) % w, y = ((Math.round(cy) + dy) % h + h) % h;
+        const i = y * w + x;
+        if (mode === 'erase') { this.u[i] = 1; this.v[i] = 0; } else { this.u[i] = 0.5; this.v[i] = 0.25; }
+      }
+      return this;
+    }
+    seedRandom(count = 10, r = 4, rand = Math.random) {
+      for (let c = 0; c < count; c++) this.seedSquare(Math.floor(rand() * this.w), Math.floor(rand() * this.h), r);
+      return this;
+    }
+    seedNoise(amount = 0.02, rand = Math.random) {
+      for (let i = 0; i < this.n; i++) { this.u[i] += (rand() - 0.5) * amount; this.v[i] = Math.max(0, this.v[i] + (rand() - 0.5) * amount); }
+      return this;
+    }
+    // 'center' | 'random' | 'noise'（模様のプリセットと同じ名前）
+    seed(style = 'center', rand = Math.random) {
+      this.reset();
+      const r = Math.max(3, Math.round(Math.min(this.w, this.h) / 24));
+      if (style === 'random') this.seedRandom(Math.max(4, Math.round(this.n / 2500)), r, rand);
+      else if (style === 'noise') { this.seedRandom(Math.max(8, Math.round(this.n / 1200)), Math.max(2, r - 1), rand); this.seedNoise(0.05, rand); }
+      else this.seedSquare(this.w >> 1, this.h >> 1, r);
+      return this;
+    }
+
+    setParams(p) {
+      for (const key of ['Du', 'Dv', 'F', 'k', 'dt']) if (p[key] != null) this[key] = +p[key];
+      if (p.terms) Object.assign(this.terms, p.terms);
+      return this;
+    }
+    snapshot() { return { u: this.u.slice(), v: this.v.slice(), time: this.time, steps: this.steps }; }
+    restore(s) { this.u.set(s.u); this.v.set(s.v); this.time = s.time; this.steps = s.steps; this.exploded = false; return this; }
+
+    // 統計（判定用）
+    stats(th = 0.2) {
+      let cover = 0, sumV = 0, maxV = -Infinity, minU = Infinity;
+      for (let i = 0; i < this.n; i++) { const vi = this.v[i]; sumV += vi; if (vi > th) cover++; if (vi > maxV) maxV = vi; if (this.u[i] < minU) minU = this.u[i]; }
+      return { cover: cover / this.n, meanV: sumV / this.n, maxV, minU };
+    }
+  }
+
+  RD.Sim = Sim;
+  RD.TERM_KEYS = TERM_KEYS;
+})(window.RD = window.RD || {});
+
+
+// core/views.js
+// 表示部品：色のパレット、草原ビュー（2次元）、棒グラフ（1次元）、時間グラフ、再生バー。
+(function (RD) {
+  const { h, cssVar, fmt } = RD.ui;
+
+  // ---- パレット ----
+  const PALETTES = {
+    meadow: { name: '草とウサギ', stops: ['#4f9a45', '#a8c25e', '#d9b06a', '#9a5a2a', '#3b2010'] },
+    ink: { name: 'インク', stops: ['#f7f4ea', '#a9c8e8', '#2f68b0', '#132a55'] },
+    viridis: { name: 'みどり〜きいろ（見分けやすい）', stops: ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'] },
+    sunset: { name: '夕焼け', stops: ['#1b1035', '#6b2d6b', '#e0604a', '#f7d38a'] },
+    coral: { name: '海', stops: ['#0b2a3a', '#1f7a8c', '#f2b880', '#fff4e6'] },
+    mono: { name: '白黒', stops: ['#ffffff', '#111111'] },
+    grass: { name: '草の量', stops: ['#f1ead2', '#bcd58f', '#3a8a35'] },
+  };
+  const hex = (s) => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
+  const lutCache = {};
+  function lut(name) {
+    if (lutCache[name]) return lutCache[name];
+    const stops = (PALETTES[name] || PALETTES.meadow).stops.map(hex);
+    const out = new Uint8ClampedArray(256 * 3);
+    for (let i = 0; i < 256; i++) {
+      const t = (i / 255) * (stops.length - 1);
+      const j = Math.min(stops.length - 2, Math.floor(t)), f = t - j;
+      for (let c = 0; c < 3; c++) out[i * 3 + c] = stops[j][c] + (stops[j + 1][c] - stops[j][c]) * f;
+    }
+    return (lutCache[name] = out);
+  }
+  const gradientCss = (name) => `linear-gradient(90deg, ${(PALETTES[name] || PALETTES.meadow).stops.join(', ')})`;
+  // 値 t(0〜1) を CSS 色に
+  function colorOf(name, t) {
+    const L = lut(name), i = Math.max(0, Math.min(255, Math.round(t * 255))) * 3;
+    return `rgb(${L[i]}, ${L[i + 1]}, ${L[i + 2]})`;
+  }
+
+  // ---- 草原ビュー（2次元） ----
+  // opts: field 'v'|'u', palette, range [lo, hi], brush {mode, radius} | null,
+  //       onPick(i), onPaint(), colorbar(true), title（カラーバーの見出し）
+  class FieldView {
+    constructor(sim, opts = {}) {
+      this.sim = sim;
+      this.field = opts.field || 'v';
+      this.palette = opts.palette || (this.field === 'u' ? 'grass' : 'meadow');
+      this.range = opts.range || (this.field === 'u' ? [0, 1] : [0, 0.4]);
+      this.brush = opts.brush || null;
+      this.onPick = opts.onPick || null;
+      this.onPaint = opts.onPaint || null;
+      this.picked = opts.picked ?? null;
+      this.showReadout = opts.readout !== false;
+      const { w, hgt } = { w: sim.w, hgt: sim.h };
+      this.cell = Math.max(1, Math.floor((opts.maxPx || 480) / Math.max(w, hgt)));
+      this.canvas = h('canvas', { width: w * this.cell, height: hgt * this.cell, role: 'img', 'aria-label': opts.title || '草原のようす' });
+      this.off = document.createElement('canvas');
+      this.off.width = w; this.off.height = hgt;
+      this.img = this.off.getContext('2d').createImageData(w, hgt);
+      this.wrap = h('div', { class: 'sim-canvas-wrap' + (this.brush ? ' brush' : '') }, this.canvas);
+      if (opts.maxCss) this.wrap.style.maxWidth = opts.maxCss;
+      this.cbBar = h('div', { class: 'bar' });
+      this.cbTitle = h('div', { class: 'cb-title' });
+      this.cbLo = h('span'); this.cbHi = h('span');
+      this.colorbar = h('div', { class: 'colorbar' }, this.cbTitle, this.cbLo, this.cbBar, this.cbHi);
+      this.readout = h('div', { class: 'readout', 'aria-live': 'polite' });
+      this.el = h('div', { class: 'sim-view' }, this.wrap, opts.colorbar === false ? null : this.colorbar, this.showReadout ? this.readout : null);
+      this.title = opts.title;
+      this._bindPointer();
+      this._updateColorbar();
+      this.render();
+    }
+    setPalette(name) { this.palette = name; this._updateColorbar(); this.render(); }
+    setField(field, range) { this.field = field; if (range) this.range = range; this._updateColorbar(); this.render(); }
+    setBrush(brush) { this.brush = brush; this.wrap.classList.toggle('brush', !!brush); }
+    _updateColorbar() {
+      this.cbBar.style.background = gradientCss(this.palette);
+      this.cbLo.textContent = fmt(this.range[0], 2);
+      this.cbHi.textContent = fmt(this.range[1], 2) + (this.field === 'v' ? ' 以上' : '');
+      this.cbTitle.innerHTML = this.title || (this.field === 'v' ? '色 ＝ 🐇 ウサギの濃さ <i class="v">v</i>' : '色 ＝ 🌱 草の量 <i class="v">u</i>');
+    }
+    _cellAt(ev) {
+      const r = this.canvas.getBoundingClientRect();
+      const x = Math.floor(((ev.clientX - r.left) / r.width) * this.sim.w);
+      const y = Math.floor(((ev.clientY - r.top) / r.height) * this.sim.h);
+      return [Math.max(0, Math.min(this.sim.w - 1, x)), Math.max(0, Math.min(this.sim.h - 1, y))];
+    }
+    _bindPointer() {
+      let painting = false, last = null;
+      const paintAt = (ev) => {
+        const [x, y] = this._cellAt(ev);
+        const rad = this.brush.radius ?? 3;
+        if (last) { // 線が途切れないように補間
+          const dx = x - last[0], dy = y - last[1], n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / Math.max(1, rad / 2)));
+          for (let s = 1; s <= n; s++) this.sim.paint(last[0] + (dx * s) / n, last[1] + (dy * s) / n, rad, this.brush.mode);
+        } else this.sim.paint(x, y, rad, this.brush.mode);
+        last = [x, y];
+        this.render();
+        this.onPaint && this.onPaint();
+      };
+      this.canvas.addEventListener('pointerdown', (ev) => {
+        if (this.brush) {
+          painting = true; last = null;
+          this.canvas.setPointerCapture(ev.pointerId);
+          paintAt(ev);
+        } else {
+          const [x, y] = this._cellAt(ev);
+          this.pick(this.sim.idx(x, y));
+        }
+      });
+      this.canvas.addEventListener('pointermove', (ev) => { if (painting && this.brush) paintAt(ev); });
+      const end = () => { painting = false; last = null; };
+      this.canvas.addEventListener('pointerup', end);
+      this.canvas.addEventListener('pointercancel', end);
+    }
+    pick(i) {
+      this.picked = i;
+      this.render();
+      this.onPick && this.onPick(i);
+    }
+    render() {
+      const { sim, img } = this;
+      const a = this.field === 'u' ? sim.u : sim.v;
+      const L = lut(this.palette), d = img.data;
+      const lo = this.range[0], span = this.range[1] - this.range[0] || 1;
+      for (let i = 0; i < sim.n; i++) {
+        let t = (a[i] - lo) / span;
+        t = t < 0 ? 0 : t > 1 ? 1 : t;
+        const j = (t * 255) | 0, o = i * 4;
+        d[o] = L[j * 3]; d[o + 1] = L[j * 3 + 1]; d[o + 2] = L[j * 3 + 2]; d[o + 3] = 255;
+      }
+      this.off.getContext('2d').putImageData(img, 0, 0);
+      const ctx = this.canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(this.off, 0, 0, this.canvas.width, this.canvas.height);
+      const c = this.cell;
+      if (c >= 12) { // 小さいマス目は線を引く
+        ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = 1; x < sim.w; x++) { ctx.moveTo(x * c + 0.5, 0); ctx.lineTo(x * c + 0.5, sim.h * c); }
+        for (let y = 1; y < sim.h; y++) { ctx.moveTo(0, y * c + 0.5); ctx.lineTo(sim.w * c, y * c + 0.5); }
+        ctx.stroke();
+      }
+      if (this.picked != null) {
+        const [x, y] = sim.xy(this.picked);
+        const m = Math.max(2, c);
+        ctx.lineWidth = Math.max(2, Math.round(this.canvas.width / 160));
+        ctx.strokeStyle = '#ffffff'; ctx.strokeRect(x * c - m * 0.5, y * c - m * 0.5, c + m, c + m);
+        ctx.strokeStyle = '#e0303a'; ctx.strokeRect(x * c - m * 0.5 - ctx.lineWidth, y * c - m * 0.5 - ctx.lineWidth, c + m + ctx.lineWidth * 2, c + m + ctx.lineWidth * 2);
+        if (this.showReadout) {
+          this.readout.innerHTML = `えらんだマス（${x + 1}, ${y + 1}）　草 <i class="v">u</i> = ${fmt(sim.u[this.picked], 3)}　ウサギ <i class="v">v</i> = ${fmt(sim.v[this.picked], 3)}`;
+        }
+      } else if (this.showReadout && !this.readout.textContent) {
+        this.readout.textContent = this.brush ? 'なぞるとウサギを放せます' : 'マスをクリックすると値が見られます';
+      }
+    }
+    // サムネイル（コレクション用）
+    thumbnail(size = 96) {
+      const c = document.createElement('canvas');
+      c.width = size; c.height = size;
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(this.off, 0, 0, size, size);
+      return c.toDataURL('image/png');
+    }
+    // PNG 保存（拡大して保存）
+    savePng(filename = 'pattern.png', scale = 4) {
+      const c = document.createElement('canvas');
+      c.width = this.sim.w * scale; c.height = this.sim.h * scale;
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(this.off, 0, 0, c.width, c.height);
+      const a = h('a', { href: c.toDataURL('image/png'), download: filename });
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+  }
+
+  // ---- 棒グラフ（1次元） ----
+  // opts: get() → 配列, max, min, color（CSS 変数名）, labels（値を表示）, highlight（index）, onPick(i), height, refLine（基準線の値）
+  class BarView {
+    constructor(opts) {
+      this.o = Object.assign({ min: 0, max: 1, color: '--t-u', labels: false, height: 220, highlight: null }, opts);
+      this.canvas = h('canvas', { width: 640, height: this.o.height });
+      this.el = h('div', { class: 'bars' }, this.canvas);
+      if (this.o.onPick) {
+        this.canvas.style.cursor = 'pointer';
+        this.canvas.addEventListener('pointerdown', (ev) => {
+          const a = this.o.get();
+          const r = this.canvas.getBoundingClientRect();
+          const i = Math.floor(((ev.clientX - r.left) / r.width) * a.length);
+          this.o.highlight = Math.max(0, Math.min(a.length - 1, i));
+          this.o.onPick(this.o.highlight);
+          this.render();
+        });
+      }
+      this.render();
+    }
+    set(opts) { Object.assign(this.o, opts); this.render(); }
+    render() {
+      const { canvas } = this, o = this.o, a = o.get(), n = a.length;
+      const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+      const pad = { t: o.labels ? 26 : 10, b: 10, l: 6, r: 6 };
+      ctx.clearRect(0, 0, W, H);
+      const bw = (W - pad.l - pad.r) / n;
+      const y = (val) => H - pad.b - ((val - o.min) / (o.max - o.min)) * (H - pad.t - pad.b);
+      const base = y(Math.max(o.min, Math.min(o.max, 0)));
+      const col = cssVar(o.color) || '#3a8a35', ink = cssVar('--ink-2'), acc = cssVar('--accent');
+      for (let i = 0; i < n; i++) {
+        const val = a[i], top = y(Math.max(o.min, Math.min(o.max, val)));
+        ctx.fillStyle = col;
+        ctx.globalAlpha = o.highlight === i ? 1 : 0.75;
+        ctx.fillRect(pad.l + i * bw + bw * 0.1, Math.min(top, base), bw * 0.8, Math.abs(base - top));
+        ctx.globalAlpha = 1;
+        if (o.highlight === i) { ctx.strokeStyle = acc; ctx.lineWidth = 3; ctx.strokeRect(pad.l + i * bw + bw * 0.05, pad.t - 4, bw * 0.9, H - pad.t - pad.b + 4); }
+        if (o.labels) {
+          ctx.fillStyle = ink; ctx.font = `${Math.min(15, bw * 0.38)}px sans-serif`; ctx.textAlign = 'center';
+          ctx.fillText(fmt(val, o.labelDigits ?? 1), pad.l + i * bw + bw / 2, Math.min(top, base) - 6 < 12 ? 14 : Math.min(top, base) - 6);
+        }
+      }
+      ctx.strokeStyle = ink; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pad.l, base + 0.5); ctx.lineTo(W - pad.r, base + 0.5); ctx.stroke();
+      if (o.refLine != null) {
+        ctx.setLineDash([6, 5]); ctx.strokeStyle = acc;
+        ctx.beginPath(); ctx.moveTo(pad.l, y(o.refLine)); ctx.lineTo(W - pad.r, y(o.refLine)); ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+  }
+
+  // ---- 時間グラフ ----
+  // opts: series [{label, color:'--t-u'}], ymin, ymax, maxPoints, height, xLabel, yLabel
+  class TimeGraph {
+    constructor(opts) {
+      this.o = Object.assign({ ymin: 0, ymax: 1, maxPoints: 400, height: 220, xLabel: '時間 →' }, opts);
+      this.data = this.o.series.map(() => []);
+      this.canvas = h('canvas', { width: 640, height: this.o.height });
+      this.legend = h('div', { class: 'graph-legend' }, this.o.series.map((s) => h('span', { html: s.label, style: { color: `var(${s.color})` } })));
+      this.el = h('div', { class: 'graph' }, this.canvas, this.legend);
+      this.render();
+    }
+    push(values) {
+      values.forEach((v, i) => { const d = this.data[i]; d.push(v); if (d.length > this.o.maxPoints) d.shift(); });
+    }
+    clear() { this.data = this.o.series.map(() => []); this.render(); }
+    render() {
+      const { canvas, o } = this, ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+      const pad = { t: 12, b: 26, l: 44, r: 10 };
+      ctx.clearRect(0, 0, W, H);
+      const ink = cssVar('--ink-2'), line = cssVar('--line');
+      const y = (v) => H - pad.b - ((v - o.ymin) / (o.ymax - o.ymin)) * (H - pad.t - pad.b);
+      ctx.font = '13px sans-serif'; ctx.fillStyle = ink; ctx.textAlign = 'right';
+      const ticks = o.ticks || [o.ymin, (o.ymin + o.ymax) / 2, o.ymax];
+      ctx.strokeStyle = line; ctx.lineWidth = 1;
+      for (const t of ticks) {
+        ctx.beginPath(); ctx.moveTo(pad.l, y(t) + 0.5); ctx.lineTo(W - pad.r, y(t) + 0.5); ctx.stroke();
+        ctx.fillText(fmt(t, 2), pad.l - 6, y(t) + 4);
+      }
+      ctx.textAlign = 'right'; ctx.fillText(o.xLabel, W - pad.r, H - 6);
+      if (o.yLabel) { ctx.textAlign = 'left'; ctx.fillText(o.yLabel, pad.l + 4, pad.t + 10); }
+      const xs = (i) => pad.l + (i / Math.max(1, o.maxPoints - 1)) * (W - pad.l - pad.r);
+      this.data.forEach((d, si) => {
+        if (!d.length) return;
+        ctx.strokeStyle = cssVar(o.series[si].color) || '#333'; ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        d.forEach((v, i) => { const yy = y(Math.max(o.ymin - 1, Math.min(o.ymax + 1, v))); i ? ctx.lineTo(xs(i), yy) : ctx.moveTo(xs(i), yy); });
+        ctx.stroke();
+        const last = d[d.length - 1];
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.beginPath(); ctx.arc(xs(d.length - 1), y(Math.max(o.ymin, Math.min(o.ymax, last))), 4, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+  }
+
+  // ---- 再生バー（ループ） ----
+  // opts: sim, onFrame()（描画）, onStep()（1コマごと。軽い処理だけ）, onReset(), onExplode(),
+  //       speeds [{label, spf}]（spf = 1フレームあたりのステップ数。0.1 なら10フレームに1回）, speed（初期 index）,
+  //       autoplay, showTime, timeLabel(sim)
+  class Runner {
+    constructor(opts) {
+      this.o = Object.assign({ speeds: [{ label: 'ゆっくり', spf: 0.25 }, { label: 'ふつう', spf: 1 }, { label: 'はやい', spf: 8 }], speed: 1, showTime: true }, opts);
+      this.sim = opts.sim;
+      this.running = false;
+      this.acc = 0;
+      this.visible = true;
+      this.playBtn = RD.ui.button('▶ 再生', () => this.toggle(), { small: true });
+      this.stepBtn = RD.ui.button('1コマ進める', () => { this.pause(); this.advance(1); }, { small: true });
+      this.resetBtn = this.o.onReset ? RD.ui.button('↺ はじめから', () => { this.pause(); this.o.onReset(); this.draw(); }, { small: true }) : null;
+      this.speedSeg = this.o.speeds.length > 1 ? RD.ui.segmented(this.o.speeds.map((s, i) => ({ value: i, label: s.label })), this.o.speed, (i) => { this.o.speed = i; }) : null;
+      this.timeEl = h('span', { class: 'time' });
+      this.el = h('div', { class: 'playbar' }, this.playBtn, this.stepBtn, this.resetBtn, this.speedSeg && this.speedSeg.el, this.o.showTime ? this.timeEl : null);
+      this._tick = this._tick.bind(this);
+      if ('IntersectionObserver' in window) {
+        this.io = new IntersectionObserver((ents) => { this.visible = ents.some((e) => e.isIntersecting); });
+        this.io.observe(this.el);
+      }
+      this.draw();
+      if (this.o.autoplay) this.play();
+      Runner.all.add(this);
+    }
+    play() { if (this.running) return; this.running = true; this.playBtn.innerHTML = '⏸ 一時停止'; this.raf = requestAnimationFrame(this._tick); }
+    pause() { this.running = false; this.playBtn.innerHTML = '▶ 再生'; cancelAnimationFrame(this.raf); }
+    toggle() { this.running ? this.pause() : this.play(); }
+    destroy() { this.pause(); this.io && this.io.disconnect(); Runner.all.delete(this); }
+    advance(n) {
+      for (let i = 0; i < n; i++) {
+        this.sim.step(1);
+        this.o.onStep && this.o.onStep(this.sim);
+        if (this.sim.exploded) { this.pause(); this.o.onExplode && this.o.onExplode(); break; }
+      }
+      this.draw();
+    }
+    draw() {
+      this.o.onFrame && this.o.onFrame(this.sim);
+      if (this.o.showTime) this.timeEl.textContent = this.o.timeLabel ? this.o.timeLabel(this.sim) : `${this.sim.steps} コマ目`;
+    }
+    _tick() {
+      if (!this.running) return;
+      if (!this.el.isConnected) { this.destroy(); return; }
+      if (this.visible) {
+        this.acc += this.o.speeds[this.o.speed].spf;
+        const n = Math.floor(this.acc);
+        if (n > 0) { this.acc -= n; this.advance(n); }
+      }
+      this.raf = requestAnimationFrame(this._tick);
+    }
+  }
+  Runner.all = new Set();
+  Runner.stopAll = () => { for (const r of [...Runner.all]) r.destroy(); };
+
+  RD.PALETTES = PALETTES;
+  RD.colorOf = colorOf;
+  RD.gradientCss = gradientCss;
+  RD.FieldView = FieldView;
+  RD.BarView = BarView;
+  RD.TimeGraph = TimeGraph;
+  RD.Runner = Runner;
+})(window.RD = window.RD || {});
+
+
+// core/ledger.js
+// 1マスの家計簿（M02）。えらんだマスの各項の値と、次のコマの値を表で見せる。
+(function (RD) {
+  const { h, fmt } = RD.ui;
+
+  // opts: sim, index（えらんだマス）, show: 'both' | 'u' | 'v', digits, caption
+  class Ledger {
+    constructor(opts) {
+      this.o = Object.assign({ show: 'both', digits: 4, index: 0 }, opts);
+      this.sim = opts.sim;
+      this.table = h('table', { class: 'ledger' });
+      this.cap = h('div', { class: 'cap' });
+      this.el = h('div', { class: 'ledger-wrap' }, this.cap, this.table);
+      this.update();
+    }
+    show(i) { this.o.index = i; this.update(); }
+    update() {
+      const { sim, o } = this;
+      const b = sim.breakdown(o.index);
+      const t = sim.terms, d = o.digits;
+      const showU = o.show !== 'v', showV = o.show !== 'u';
+      const n = (x) => fmt(x, d);
+      const sgn = (x) => (x >= 0 ? '+' : '−') + fmt(Math.abs(x), d);
+      const [x, y] = sim.xy(o.index);
+      this.cap.innerHTML = o.caption || (sim.dim === 0 ? '草原の家計簿' : `えらんだマス（${x + 1}${sim.dim === 2 ? ', ' + (y + 1) : ''}）の家計簿`);
+      const rows = [];
+      const head = h('tr', null, h('th', { text: '' }), showU ? h('th', { html: '🌱 草 <i class="v">u</i>' }) : null, showV ? h('th', { html: '🐇 ウサギ <i class="v">v</i>' }) : null);
+      rows.push(h('thead', null, head));
+      const body = h('tbody');
+      const tr = (label, uVal, vVal, cls = '', off = false) => {
+        body.appendChild(h('tr', { class: cls + (off ? ' off' : '') },
+          h('td', { html: label }),
+          showU ? h('td', { class: 'num', html: uVal ?? '' }) : null,
+          showV ? h('td', { class: 'num', html: vVal ?? '' }) : null));
+      };
+      tr('今の値', n(b.u), n(b.v));
+      if (sim.dim > 0) {
+        tr('まわりの平均', n(b.avgU), n(b.avgV));
+        tr('∇²（まわりの平均 − 自分）', n(b.lapU), n(b.lapV));
+        tr('<span class="t-diff">広がる D∇²</span>', `<span class="t-diff">${sgn(b.diffU)}</span>`, `<span class="t-diff">${sgn(b.diffV)}</span>`, '', !t.diff);
+      }
+      tr('<span class="t-feed">草が生える F(1−u)</span>', `<span class="t-feed">${sgn(b.feed)}</span>`, '', '', !t.feed);
+      tr('<span class="t-react">食べて増える uv²</span>', `<span class="t-react">${sgn(-b.react)}</span>`, `<span class="t-react">${sgn(b.react)}</span>`, '', !t.react);
+      tr('<span class="t-decay">減る (F+k)v</span>', '', `<span class="t-decay">${sgn(-b.decay)}</span>`, '', !t.decay);
+      tr('合計（変化の速さ ∂/∂t）', sgn(b.dudt), sgn(b.dvdt), 'sum');
+      tr(`次の値（今 + ${fmt(b.dt, 3)} × 合計）`, n(b.uNext), n(b.vNext), 'next');
+      this.table.replaceChildren(rows[0], body);
+    }
+  }
+
+  RD.Ledger = Ledger;
+})(window.RD = window.RD || {});
+
+
+// core/equation.js
+// 色分けした Gray-Scott の式（M05）。interactive なら項のクリックで sim.terms をオン・オフ（M04）。
+(function (RD) {
+  const { h, dudt } = RD.ui;
+
+  const TERM_INFO = {
+    diff: { cls: 't-diff', name: '広がる（拡散）' },
+    feed: { cls: 't-feed', name: '草が生える' },
+    react: { cls: 't-react', name: 'ペアで食べて増える' },
+    decay: { cls: 't-decay', name: 'ウサギが減る' },
+  };
+
+  // opts: sim（interactive のとき必須）, interactive, show 'both'|'u'|'v', legend(true), onChange(terms)
+  class Equation {
+    constructor(opts = {}) {
+      this.o = Object.assign({ interactive: false, show: 'both', legend: true }, opts);
+      this.sim = opts.sim || null;
+      this.terms = this.sim ? this.sim.terms : { diff: true, feed: true, react: true, decay: true };
+      this.el = h('div', { class: 'equation' + (this.o.interactive ? ' interactive' : '') });
+      const term = (key, html) => {
+        const span = h('span', { class: `term ${TERM_INFO[key].cls}`, 'data-term': key, html, title: TERM_INFO[key].name });
+        if (this.o.interactive) {
+          span.setAttribute('role', 'button');
+          span.setAttribute('tabindex', '0');
+          const flip = () => this.set(key, !this.terms[key]);
+          span.addEventListener('click', flip);
+          span.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+        }
+        return span;
+      };
+      const line = (...parts) => h('div', { class: 'eq-line' }, parts);
+      const op = (s) => h('span', { html: ` ${s} ` });
+      if (this.o.show !== 'v') {
+        this.el.appendChild(line(h('span', { html: dudt('u') }), op('='),
+          term('diff', '<i>D<sub>u</sub></i>∇²<i>u</i>'), op('−'), term('react', '<i>uv</i>²'), op('+'), term('feed', '<i>F</i>(1−<i>u</i>)')));
+      }
+      if (this.o.show !== 'u') {
+        this.el.appendChild(line(h('span', { html: dudt('v') }), op('='),
+          term('diff', '<i>D<sub>v</sub></i>∇²<i>v</i>'), op('+'), term('react', '<i>uv</i>²'), op('−'), term('decay', '(<i>F</i>+<i>k</i>)<i>v</i>')));
+      }
+      if (this.o.legend) {
+        this.el.appendChild(h('div', { class: 'legend' }, Object.values(TERM_INFO).map((t) => h('span', { class: t.cls, text: t.name }))));
+        if (this.o.interactive) this.el.appendChild(h('div', { class: 'legend muted', text: '項をクリックすると、オン・オフを切り替えられます' }));
+      }
+      this.refresh();
+    }
+    set(key, on) {
+      this.terms[key] = on;
+      this.refresh();
+      this.o.onChange && this.o.onChange(this.terms);
+    }
+    refresh() {
+      this.el.querySelectorAll('.term').forEach((s) => {
+        const on = this.terms[s.dataset.term];
+        s.classList.toggle('off', !on);
+        s.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+  }
+
+  RD.TERM_INFO = TERM_INFO;
+  RD.Equation = Equation;
+})(window.RD = window.RD || {});
+
+
+// core/quiz.js
+// 問題の部品。章からは ctx.quiz(spec) で使う（番号付けと進み具合の記録は ctx が行う）。
+//
+// 共通: { id, type, q（HTML）, hints:[HTML…最大3], explain（正解後の解説 HTML）, answerText（答えを見るで出す HTML）}
+// type:
+//   choice  { options:[{text, correct, why}] }              why = その選択肢を選んだときの説明（誤答の理由）
+//   predict { options:[{text, correct, why}], observe(), observeLabel }  予想→観察→説明。観察したらクリア
+//   number  { answer, tol, unit, prefix, wrong(val) → HTML|null }
+//   grid    { prefill:[[値 or null]], answer:[[値]], tol, format, color }   null のマスが入力欄
+//   match   { left:[HTML], right:[テキスト], answer:[left ごとの right の index] }
+//   fill    { blanks:[{label, answer, tol, unit}] }
+//   custom  { render(body, api) }  api: { solve(), feedback(html, kind) }
+(function (RD) {
+  const { h, parseNum, fmt } = RD.ui;
+
+  const defaultTol = (ans) => Math.max(0.0005, Math.abs(ans) * 0.002);
+  const close = (val, ans, tol) => isFinite(val) && Math.abs(val - ans) <= (tol ?? defaultTol(ans)) + 1e-12;
+
+  function makeQuiz(ctx, spec) {
+    const solvedBefore = ctx.isSolved(spec.id);
+    const isPredict = spec.type === 'predict';
+    const badge = h('span', { class: 'quiz-badge' + (isPredict ? ' predict' : ''), text: isPredict ? `予想 ${ctx.number}` : `問題 ${ctx.number}` });
+    const state = h('span', { class: 'quiz-state', text: solvedBefore ? '✓ クリア' : '' });
+    const el = h('div', { class: 'quiz' + (solvedBefore ? ' solved' : ''), id: 'q-' + spec.id },
+      h('div', { class: 'quiz-head' }, badge, state));
+    el.appendChild(h('div', { class: 'quiz-q' }, typeof spec.q === 'string' ? RD.ui.html(spec.q) : spec.q));
+    const body = h('div', { class: 'quiz-body' });
+    const fb = h('div', { class: 'feedback', 'aria-live': 'polite' });
+    el.append(body, fb);
+
+    const feedback = (html, kind) => { fb.className = 'feedback ' + (kind || ''); fb.innerHTML = html || ''; };
+    const solve = () => {
+      el.classList.add('solved');
+      state.textContent = '✓ クリア';
+      ctx.solve(spec.id);
+    };
+    const praise = () => ['正解です！', 'その通り！', 'よくできました！', 'ばっちりです！'][Math.floor(Math.random() * 4)];
+    const okMsg = () => `<p><b>${praise()}</b></p>${spec.explain || ''}`;
+
+    // ---- 種類ごとの中身 ----
+    const types = {
+      choice() {
+        const box = h('div', { class: 'choices' });
+        spec.options.forEach((opt) => {
+          const b = h('button', { type: 'button', class: 'choice', html: opt.text });
+          b.addEventListener('click', () => {
+            box.querySelectorAll('.choice').forEach((x) => x.classList.remove('picked-ok', 'picked-ng'));
+            if (opt.correct) { b.classList.add('picked-ok'); feedback(okMsg(), 'ok'); solve(); }
+            else { b.classList.add('picked-ng'); feedback(opt.why || '<p>ちがいます。もう一度考えてみましょう。</p>', 'ng'); }
+          });
+          box.appendChild(b);
+        });
+        body.appendChild(box);
+      },
+
+      predict() {
+        const box = h('div', { class: 'choices' });
+        let picked = null;
+        const obsBtn = RD.ui.button(spec.observeLabel || '▶ 実際に動かしてたしかめる', () => {
+          if (picked == null) return;
+          spec.observe && spec.observe();
+          box.querySelectorAll('.choice').forEach((x, i) => { if (spec.options[i].correct) x.classList.add('reveal'); });
+          const opt = spec.options[picked];
+          const head = opt.correct ? '<p><b>予想どおり！</b></p>' : '<p><b>予想とちがいましたね。</b>でも、予想してから見ることが大事です。</p>';
+          feedback(head + (opt.correct ? '' : (opt.why || '')) + (spec.explain || ''), opt.correct ? 'ok' : 'info');
+          solve();
+        }, { primary: true });
+        obsBtn.disabled = true;
+        spec.options.forEach((opt, i) => {
+          const b = h('button', { type: 'button', class: 'choice', html: opt.text });
+          b.addEventListener('click', () => {
+            picked = i;
+            box.querySelectorAll('.choice').forEach((x) => x.classList.remove('picked-ok', 'picked-ng', 'reveal'));
+            b.classList.add('picked-ok');
+            obsBtn.disabled = false;
+            feedback('<p>予想を選びました。動かしてたしかめてみましょう。</p>', 'info');
+          });
+          box.appendChild(b);
+        });
+        body.append(box, h('div', { class: 'row' }, obsBtn));
+      },
+
+      number() {
+        const inp = h('input', { type: 'text', inputmode: 'decimal', 'aria-label': '答え', autocomplete: 'off' });
+        const check = () => {
+          const val = parseNum(inp.value);
+          inp.classList.remove('ok', 'ng');
+          if (!isFinite(val)) { feedback('<p>数字で入力してください（例：13.5、−0.2）。</p>', 'ng'); return; }
+          if (close(val, spec.answer, spec.tol)) { inp.classList.add('ok'); feedback(okMsg(), 'ok'); solve(); return; }
+          inp.classList.add('ng');
+          let msg = spec.wrong ? spec.wrong(val) : null;
+          if (!msg && spec.answer !== 0 && close(val, -spec.answer, spec.tol)) msg = '<p>おしい！ 数の大きさは合っています。<b>＋と−（増えるか減るか）</b>をもう一度確認しましょう。</p>';
+          feedback(msg || '<p>ちがうようです。ヒントを見ながら、もう一度計算してみましょう。</p>', 'ng');
+        };
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') check(); });
+        body.appendChild(h('div', { class: 'answer-row' }, spec.prefix ? h('span', { html: spec.prefix }) : null, inp, spec.unit ? h('span', { html: spec.unit }) : null, RD.ui.button('答え合わせ', check, { primary: true })));
+      },
+
+      grid() {
+        const g = RD.ui.numGrid({ values: spec.prefill, editable: (r, c) => spec.prefill[r][c] == null, format: spec.format || ((v) => fmt(v, 3)), color: spec.color });
+        const check = () => {
+          let all = true, any = false;
+          spec.prefill.forEach((row, r) => row.forEach((v, c) => {
+            if (v != null) return;
+            const ok = close(g.values[r][c], spec.answer[r][c], spec.tol);
+            g.mark(r, c, ok); all = all && ok; any = true;
+          }));
+          if (all && any) { feedback(okMsg(), 'ok'); solve(); }
+          else feedback('<p>赤いマスがちがうようです。そのマスだけ、もう一度計算してみましょう。</p>', 'ng');
+        };
+        body.append(h('div', { style: { overflowX: 'auto', padding: '4px 0' } }, g.el), h('div', { class: 'row', style: { marginTop: '8px' } }, RD.ui.button('答え合わせ', check, { primary: true })));
+      },
+
+      match() {
+        const list = h('div', { class: 'match-list' });
+        const sels = spec.left.map((l) => {
+          const sel = h('select', { 'aria-label': '対応するものをえらぶ' }, h('option', { value: '', text: '― えらぶ ―' }), spec.right.map((r, j) => h('option', { value: j, text: r })));
+          list.appendChild(h('div', { class: 'match-item' }, h('div', { html: l }), sel));
+          return sel;
+        });
+        body.appendChild(list);
+        const check = () => {
+          let all = true;
+          sels.forEach((s, i) => {
+            const ok = s.value !== '' && +s.value === spec.answer[i];
+            s.classList.remove('ok', 'ng'); s.classList.add(ok ? 'ok' : 'ng'); all = all && ok;
+          });
+          if (all) { feedback(okMsg(), 'ok'); solve(); }
+          else feedback('<p>赤い枠のところがちがうようです。</p>', 'ng');
+        };
+        body.appendChild(h('div', { class: 'row' }, RD.ui.button('答え合わせ', check, { primary: true })));
+      },
+
+      fill() {
+        const list = h('div', { class: 'fill-list' });
+        const inps = spec.blanks.map((b) => {
+          const inp = h('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', 'aria-label': b.label.replace(/<[^>]+>/g, '') });
+          list.appendChild(h('div', { class: 'fill-item answer-row', style: { margin: 0 } }, h('span', { class: 'lbl', html: b.label }), inp, b.unit ? h('span', { html: b.unit }) : null));
+          return inp;
+        });
+        const check = () => {
+          let all = true, firstNg = -1;
+          spec.blanks.forEach((b, i) => {
+            const ok = close(parseNum(inps[i].value), b.answer, b.tol);
+            inps[i].classList.remove('ok', 'ng'); inps[i].classList.add(ok ? 'ok' : 'ng');
+            if (!ok && firstNg < 0) firstNg = i;
+            all = all && ok;
+          });
+          if (all) { feedback(okMsg(), 'ok'); solve(); }
+          else feedback(`<p>赤い欄がちがうようです。まずは「${spec.blanks[firstNg].label}」から見直しましょう。</p>`, 'ng');
+        };
+        body.append(list, h('div', { class: 'row' }, RD.ui.button('答え合わせ', check, { primary: true })));
+      },
+
+      custom() { spec.render(body, { solve, feedback }); },
+    };
+    (types[spec.type] || types.choice)();
+
+    // ---- ヒント（3段階）と「答えを見る」 ----
+    const hints = spec.hints || [];
+    if (hints.length || spec.answerText) {
+      const area = h('div', { class: 'hints' });
+      let shown = 0;
+      const ansBtn = spec.answerText ? RD.ui.button('答えを見る', () => {
+        area.appendChild(h('div', { class: 'hint', html: `<b>答え</b>　${spec.answerText}` }));
+        ansBtn.remove();
+      }, { small: true }) : null;
+      const btn = hints.length ? RD.ui.button(`💡 ヒント（0/${hints.length}）`, () => {
+        area.appendChild(h('div', { class: 'hint', html: `<b>ヒント${shown + 1}</b>　${hints[shown]}` }));
+        shown++;
+        btn.innerHTML = `💡 ヒント（${shown}/${hints.length}）`;
+        if (shown >= hints.length) { btn.remove(); if (ansBtn) btns.appendChild(ansBtn); }
+      }, { small: true }) : null;
+      const btns = h('div', { class: 'row' }, btn, !hints.length ? ansBtn : null);
+      el.append(btns, area);
+    }
+    return el;
+  }
+
+  RD.makeQuiz = makeQuiz;
+  RD.quizClose = close;
+})(window.RD = window.RD || {});
+
+
+// core/calc.js
+// 電卓。章で ctx.useCalc() を呼ぶと右下にボタンが出る。eval は使わず、四則演算とかっこだけを自前で計算する。
+(function (RD) {
+  const { h, fmt } = RD.ui;
+
+  // 式を計算する（+ − × ÷ とかっこ、小数）。失敗したら NaN。
+  function evaluate(src) {
+    const s = src.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-').replace(/\s+/g, '');
+    let i = 0;
+    const peek = () => s[i];
+    function num() {
+      const m = /^\d*\.?\d+|^\d+\.?/.exec(s.slice(i));
+      if (!m) throw new Error('num');
+      i += m[0].length;
+      return parseFloat(m[0]);
+    }
+    function factor() {
+      if (peek() === '-') { i++; return -factor(); }
+      if (peek() === '+') { i++; return factor(); }
+      if (peek() === '(') { i++; const v = expr(); if (peek() === ')') i++; return v; }
+      return num();
+    }
+    function term() {
+      let v = factor();
+      while (peek() === '*' || peek() === '/') { const op = s[i++]; const r = factor(); v = op === '*' ? v * r : v / r; }
+      return v;
+    }
+    function expr() {
+      let v = term();
+      while (peek() === '+' || peek() === '-') { const op = s[i++]; const r = term(); v = op === '+' ? v + r : v - r; }
+      return v;
+    }
+    try {
+      const v = expr();
+      return i === s.length ? v : NaN;
+    } catch (e) { return NaN; }
+  }
+
+  let panel = null, fab = null;
+  function mount() {
+    if (fab) { fab.hidden = false; return; }
+    let expr = '';
+    const exprEl = h('div', { class: 'expr' });
+    const valEl = h('div', { class: 'val', text: '0' });
+    const show = () => {
+      exprEl.textContent = expr;
+      const v = evaluate(expr);
+      valEl.textContent = expr === '' ? '0' : isFinite(v) ? fmt(v, 8) : '…';
+    };
+    const press = (k) => {
+      if (k === 'C') expr = '';
+      else if (k === '←') expr = expr.slice(0, -1);
+      else if (k === '=') { const v = evaluate(expr); if (isFinite(v)) expr = fmt(v, 8); }
+      else expr += k;
+      show();
+    };
+    const keys = ['C', '(', ')', '←', '7', '8', '9', '÷', '4', '5', '6', '×', '1', '2', '3', '−', '0', '.', '=', '+'];
+    const keyEls = keys.map((k) => h('button', { type: 'button', text: k, class: /[÷×−+]/.test(k) ? 'op' : k === '=' ? 'eq' : '', onClick: () => press(k) }));
+    panel = h('div', { class: 'calc-panel', role: 'dialog', 'aria-label': '電卓', hidden: true },
+      h('div', { class: 'calc-display' }, exprEl, valEl),
+      h('div', { class: 'calc-keys' }, keyEls));
+    fab = RD.ui.button('🧮 電卓', () => { panel.hidden = !panel.hidden; }, {});
+    fab.classList.add('calc-fab');
+    document.body.append(panel, fab);
+  }
+  function unmount() { if (fab) { fab.hidden = true; panel.hidden = true; } }
+
+  RD.calc = { evaluate, mount, unmount };
+})(window.RD = window.RD || {});
+
+
+// core/app.js
+// アプリ本体：章の登録、ルーター（#/ と #/c/<章id>）、トップページ、章の枠、進み具合。
+//
+// 章の登録:
+//   RD.registerChapter({
+//     id: 'ch1', no: 1, title: '変化の速さ', desc: 'トップに出す1行説明', goal: 'この章のねらい',
+//     required: 4,                 // クリアに必要な正解数（0 ならクリア条件なし）
+//     render(root, ctx) { ... },  // root に中身を追加する
+//   });
+//
+// ctx:
+//   ctx.quiz(spec)        問題の要素を作る（番号付け・記録つき）
+//   ctx.onCleanup(fn)     ページを離れるときに呼ぶ
+//   ctx.useCalc()         電卓を出す
+//   ctx.params            URL のクエリ（#/c/ch8?F=0.03&k=0.06 → {F:'0.03', k:'0.06'}）
+//   ctx.markCleared()     required によらずクリアにする（ラボ等で使う）
+//   ctx.chapter           登録した定義
+(function (RD) {
+  const { h } = RD.ui;
+  const chapters = [];
+
+  function registerChapter(def) {
+    chapters.push(def);
+    chapters.sort((a, b) => a.no - b.no);
+  }
+  const find = (id) => chapters.find((c) => c.id === id);
+
+  let cleanups = [];
+  function runCleanups() {
+    cleanups.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } });
+    cleanups = [];
+    RD.Runner && RD.Runner.stopAll();
+    RD.calc.unmount();
+  }
+
+  // ---- ヘッダー ----
+  function header() {
+    const themeBtn = h('button', { type: 'button', class: 'icon-btn', title: '表示の明るさを切り替え' });
+    const themes = [['auto', '🌓 自動'], ['light', '☀️ 明るい'], ['dark', '🌙 暗い']];
+    const applyTheme = (t) => {
+      if (t === 'auto') document.documentElement.removeAttribute('data-theme');
+      else document.documentElement.setAttribute('data-theme', t);
+      themeBtn.textContent = themes.find((x) => x[0] === t)[1];
+    };
+    let theme = RD.store.get('theme', 'auto');
+    applyTheme(theme);
+    themeBtn.addEventListener('click', () => {
+      theme = themes[(themes.findIndex((x) => x[0] === theme) + 1) % themes.length][0];
+      RD.store.set('theme', theme);
+      applyTheme(theme);
+      // グラフの色は CSS 変数から読むので描き直す
+      RD.Runner.all.forEach((r) => r.draw());
+    });
+    return h('header', { class: 'app-header' },
+      h('a', { class: 'brand', href: '#/', text: '🌱🐇 草とウサギの模様ドリル' }),
+      h('span', { class: 'spacer' }),
+      themeBtn);
+  }
+
+  // ---- トップページ ----
+  function renderTop(root) {
+    const last = RD.store.get('last', null);
+    const lastCh = last && find(last);
+    root.append(
+      h('div', { class: 'hero' },
+        h('div', { class: 'muted', text: '反応拡散方程式（Gray-Scott モデル）入門' }),
+        h('h1', { text: '草とウサギで模様をつくる' }),
+        h('p', { class: 'sub', html: 'シマウマのしま模様も、ヒョウの点々も、<br>2つのかんたんなルールから生まれるかもしれません。' }),
+        h('div', { class: 'cast' },
+          h('div', { class: 'who', html: '🌱 <b>草</b>（<i class="v t-u">u</i>）<br><span class="muted">生えてくる・風で広がる</span>' }),
+          h('div', { class: 'who', html: '🐇 <b>ウサギ</b>（<i class="v t-v">v</i>）<br><span class="muted">草を食べて増える・ゆっくり歩く</span>' })),
+        h('div', { class: 'row', style: { justifyContent: 'center' } },
+          lastCh ? h('a', { class: 'btn primary', href: '#/c/' + lastCh.id, text: `つづきから（${lastCh.no ? '第' + lastCh.no + '章' : lastCh.title}）` }) : null,
+          h('a', { class: 'btn' + (lastCh ? '' : ' primary'), href: '#/c/' + (chapters[0] ? chapters[0].id : ''), text: 'はじめから' }))),
+      h('h2', { text: 'もくじ' }));
+
+    const list = h('div', { class: 'ch-list' });
+    for (const c of chapters) {
+      const p = RD.progress.of(c.id);
+      const mark = c.required ? (p.cleared ? '✓ クリア' : `${Math.min(p.solved.length, c.required)} / ${c.required}`) : '';
+      list.appendChild(h('a', { class: 'ch-card' + (p.cleared ? ' cleared' : '') + (last === c.id ? ' last' : ''), href: '#/c/' + c.id },
+        h('span', { class: 'no', text: c.no ? `第${c.no}章` : 'はじめに' }),
+        h('span', { class: 'ttl', text: c.title }),
+        h('span', { class: 'desc', text: c.desc || '' }),
+        h('span', { class: 'mark', text: mark })));
+    }
+    root.appendChild(list);
+
+    // コレクション
+    root.appendChild(h('h2', { text: '模様のコレクション' }));
+    root.appendChild(h('p', { class: 'muted', text: '第7章で再現した模様と、自由ラボで保存した模様がここに並びます。クリックするとラボで開きます。' }));
+    const coll = h('div', { class: 'collection' });
+    const saved = RD.collection.list();
+    const pats = RD.patterns || [];
+    for (const pt of pats) {
+      const got = saved.find((s) => s.id === pt.id);
+      coll.appendChild(got
+        ? h('a', { class: 'coll-item', href: `#/c/ch8?F=${got.F}&k=${got.k}&seed=${pt.seed}` }, h('img', { src: got.thumb, alt: pt.name }), pt.name)
+        : h('div', { class: 'coll-item locked' }, h('div', { class: 'ph', text: '？' }), pt.name));
+    }
+    for (const s of saved.filter((x) => x.source === 'lab')) {
+      coll.appendChild(h('a', { class: 'coll-item', href: `#/c/ch8?F=${s.F}&k=${s.k}&Du=${s.Du ?? ''}&Dv=${s.Dv ?? ''}&palette=${s.palette ?? ''}` }, h('img', { src: s.thumb, alt: s.name }), s.name));
+    }
+    root.appendChild(coll);
+
+    root.appendChild(h('div', { class: 'center', style: { marginTop: '48px' } },
+      RD.ui.button('記録をすべて消す', () => {
+        if (confirm('進み具合とコレクションをすべて消します。よろしいですか？')) { RD.progress.reset(); route(); }
+      }, { small: true })));
+  }
+
+  // ---- 章ページ ----
+  function renderChapter(root, c, params) {
+    RD.store.set('last', c.id);
+    const progEl = h('span', { class: 'ch-progress' });
+    const updateProgress = () => {
+      const p = RD.progress.of(c.id);
+      if (c.required) {
+        const n = Math.min(p.solved.length, c.required);
+        if (!p.cleared && n >= c.required) { RD.progress.setCleared(c.id); RD.ui.toast('🎉 この章をクリアしました！'); }
+        const cleared = RD.progress.of(c.id).cleared;
+        progEl.textContent = cleared ? '✓ この章はクリア済み' : `クリアまで：${n} / ${c.required} 問`;
+        progEl.classList.toggle('cleared', cleared);
+      } else {
+        progEl.textContent = '';
+      }
+    };
+    let quizNo = 0;
+    const ctx = {
+      chapter: c,
+      params,
+      get number() { return quizNo; },
+      isSolved: (qid) => RD.progress.isSolved(c.id, qid),
+      solve: (qid) => { RD.progress.markSolved(c.id, qid); updateProgress(); },
+      quiz(spec) { quizNo++; return RD.makeQuiz(ctx, spec); },
+      onCleanup: (fn) => cleanups.push(fn),
+      useCalc: () => RD.calc.mount(),
+      markCleared: () => { if (!RD.progress.of(c.id).cleared) { RD.progress.setCleared(c.id); updateProgress(); } },
+    };
+
+    root.appendChild(h('div', { class: 'ch-head' },
+      h('div', { class: 'ch-no', text: c.no ? `第${c.no}章` : 'はじめに' }),
+      h('h1', { text: c.title }),
+      c.goal ? h('div', { class: 'ch-goal' }, h('span', { class: 'label', text: 'この章のねらい' }), h('span', { html: c.goal }), progEl) : null));
+    updateProgress();
+
+    const body = h('div', { class: 'ch-body' });
+    root.appendChild(body);
+    try {
+      c.render(body, ctx);
+    } catch (e) {
+      console.error(e);
+      body.appendChild(RD.ui.note(`<p>この章の表示中にエラーが起きました：${String(e.message || e)}</p>`, 'warn'));
+    }
+
+    const i = chapters.indexOf(c);
+    const prev = chapters[i - 1], next = chapters[i + 1];
+    root.appendChild(h('nav', { class: 'ch-nav' },
+      prev ? h('a', { class: 'btn', href: '#/c/' + prev.id, text: `← ${prev.no ? '第' + prev.no + '章' : prev.title}` }) : h('span'),
+      h('a', { class: 'btn', href: '#/', text: 'もくじ' }),
+      next ? h('a', { class: 'btn primary', href: '#/c/' + next.id, text: `${next.no ? '第' + next.no + '章' : next.title} →` }) : h('span')));
+  }
+
+  // ---- ルーター ----
+  let app;
+  function parseHash() {
+    const raw = location.hash.replace(/^#/, '') || '/';
+    const [path, query = ''] = raw.split('?');
+    const params = {};
+    for (const part of query.split('&')) {
+      if (!part) continue;
+      const [k, v = ''] = part.split('=');
+      try { params[decodeURIComponent(k)] = decodeURIComponent(v); } catch (e) { /* noop */ }
+    }
+    return { parts: path.split('/').filter(Boolean), params };
+  }
+  function route() {
+    runCleanups();
+    const { parts, params } = parseHash();
+    const page = h('main', { class: 'page' });
+    app.replaceChildren(header(), page);
+    if (parts[0] === 'c' && find(parts[1])) {
+      const c = find(parts[1]);
+      document.title = `${c.no ? '第' + c.no + '章 ' : ''}${c.title}｜草とウサギの模様ドリル`;
+      renderChapter(page, c, params);
+    } else {
+      document.title = '草とウサギの模様ドリル';
+      renderTop(page);
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function start() {
+    app = document.getElementById('app');
+    window.addEventListener('hashchange', route);
+    route();
+  }
+
+  RD.registerChapter = registerChapter;
+  RD.chapters = chapters;
+  RD.start = start;
+  RD.route = route;
+})(window.RD = window.RD || {});
+
+
+// chapters/prologue.js
+// プロローグ：模様は計算で作れる（T24）。章を書くときのお手本も兼ねる。
+(function (RD) {
+  const { h, p, step, note, more, teacher, card } = RD.ui;
+
+  // patterns.js がまだ無いときの予備
+  const FALLBACK = [
+    { id: 'spots', name: '水玉', F: 0.030, k: 0.062, seed: 'random', steps: 6000 },
+    { id: 'coral', name: 'サンゴ（しま）', F: 0.0545, k: 0.062, seed: 'random', steps: 6000 },
+    { id: 'maze', name: '迷路', F: 0.029, k: 0.057, seed: 'random', steps: 6000 },
+    { id: 'mitosis', name: '分裂する点', F: 0.0367, k: 0.0649, seed: 'random', steps: 6000 },
+  ];
+
+  RD.registerChapter({
+    id: 'prologue',
+    no: 0,
+    title: '模様は計算で作れる',
+    desc: '完成した模様を見て、草とウサギに出会います。',
+    goal: 'これから何ができるようになるのかを知る',
+    required: 0,
+
+    render(root, ctx) {
+      // ---- 1. つかみ：動く模様 ----
+      const pats = (RD.patterns && RD.patterns.length ? RD.patterns : FALLBACK).filter((x) => ['spots', 'coral', 'maze', 'mitosis'].includes(x.id));
+      const size = 128;
+      const sim = new RD.Sim({ w: size, h: size });
+      const view = new RD.FieldView(sim, { readout: false });
+      let current = pats[0];
+      const load = (pt) => {
+        current = pt;
+        sim.setParams({ F: pt.F, k: pt.k });
+        sim.seed(pt.seed || 'random');
+        // 最初から少し進めておく（白紙から始まると退屈なので）
+        sim.step(Math.min(1500, Math.round((pt.steps || 4000) * 0.3)));
+        view.render();
+        caption.innerHTML = `いまの模様：<b>${pt.name}</b>（F = ${pt.F}, k = ${pt.k}）`;
+      };
+      const caption = h('div', { class: 'readout' });
+      const runner = new RD.Runner({
+        sim, onFrame: () => view.render(), autoplay: true, showTime: false,
+        speeds: [{ label: 'ふつう', spf: 6 }, { label: 'はやい', spf: 24 }], speed: 1,
+        onReset: () => load(current),
+      });
+      const seg = RD.ui.segmented(pats.map((pt) => ({ value: pt.id, label: pt.name })), pats[0].id, (id) => load(pats.find((x) => x.id === id)));
+      load(pats[0]);
+
+      root.appendChild(step({
+        title: 'この模様、ぜんぶ同じ式から生まれています',
+        text: [
+          p('右の模様は、絵を描いたのではありません。コンピュータが<b>たった2行の式</b>を、何万回もくり返し計算して生まれたものです。'),
+          p('ボタンで模様を切り替えてみましょう。水玉も、しまも、迷路も、<b>式の中の2つの数（F と k）</b>を変えただけです。'),
+          note('<p>このドリルを終えるころには、この式を<b>自分で読めて</b>、<b>好きな模様を自分で作れる</b>ようになります。</p>'),
+        ],
+        demo: [card(null, seg.el, h('div', { style: { height: '10px' } }), view.el, caption, runner.el)],
+      }));
+
+      // ---- 2. 自然の中の模様 ----
+      root.appendChild(step({
+        title: '生き物の模様は、どうやってできる？',
+        text: [
+          p('シマウマのしま、ヒョウやチーターの点々、キリンのあみ目、熱帯魚のしま、貝がらの模様、そして指紋。生き物の体には、ふしぎな模様がたくさんあります。'),
+          p('体の設計図（遺伝子）に「ここに点を描く」と1つずつ書いてあるのでしょうか？ それにしては、模様の数が多すぎますし、1匹ずつ少しずつちがいます。'),
+          note(`<p><b>1952年、アラン・チューリング</b>（コンピュータの父と呼ばれる数学者）は、こう考えました。</p>
+            <p>「2種類の物質が<b>反応</b>しながら<b>広がる</b>だけで、模様は自然に生まれるはずだ」</p>`, 'story'),
+          p('この「反応」と「拡散（広がること）」を組み合わせた式を、<b>反応拡散方程式</b>といいます。'),
+          more('チューリングの予言は本当だった？',
+            '<p>長いあいだ、チューリングの考えは「おもしろいけど本当かな？」と思われていました。</p>' +
+            '<p><b>1995年、日本の近藤滋さんたち</b>は、タテジマキンチャクダイという熱帯魚のしまを観察しました。この魚は大きくなると、しまの間に新しいしまが割りこんで、しまの数が増えていきます。その増え方が、反応拡散方程式の計算どおりだったのです。</p>' +
+            '<p>いまでは、魚のしまや、指の形、毛の生え方など、いろいろな場所でこのしくみが働いていると考えられています。</p>'),
+        ],
+      }));
+
+      // ---- 3. 登場人物 ----
+      root.appendChild(step({
+        title: '登場人物：草とウサギ',
+        text: [
+          p('このドリルでは、2つの物質を<b>草</b>と<b>ウサギ</b>にたとえます。広い草原を、小さなマス目に区切って考えます。'),
+          h('div', { class: 'cast', style: { justifyContent: 'flex-start' } },
+            h('div', { class: 'who', html: '🌱 <b>草</b>（<i class="v t-u">u</i>）<br>・外から生えてくる<br>・タネが風で<b>速く</b>広がる<br>・ウサギに食べられる' }),
+            h('div', { class: 'who', html: '🐇 <b>ウサギ</b>（<i class="v t-v">v</i>）<br>・2匹で草を食べると増える<br>・<b>ゆっくり</b>歩いて広がる<br>・寿命で減っていく' })),
+          p('ルールはこれだけです。でも、このルールを式に書いて計算すると、さっきの模様が生まれます。'),
+          note('<p>草の量を <i class="v t-u">u</i>、ウサギの濃さを <i class="v t-v">v</i> という文字で表します。<br>どちらも「マスごとにちがう数」です。この意味は第2章でくわしく学びます。</p>'),
+        ],
+      }));
+
+      // ---- 4. ゴールの式と道のり ----
+      root.appendChild(step({
+        title: 'ゴールの式',
+        text: [
+          p('最後に読めるようになる式がこれです。いまは読めなくて大丈夫。色ごとに「草とウサギのルール」が1つずつ書いてあります。'),
+          new RD.Equation({}).el,
+          p('この式を、次のように少しずつ組み立てていきます。'),
+          h('ol', null,
+            h('li', { html: '<b>変化の速さ</b>：「次の値 ＝ 今の値 ＋ 速さ × 時間」' }),
+            h('li', { html: '<b>記号 ∂u/∂t</b>：場所ごとの変化の速さ' }),
+            h('li', { html: '<b>拡散（1列）</b>：となりと平均に近づく' }),
+            h('li', { html: '<b>記号 ∇²</b>：まわりの平均 − 自分' }),
+            h('li', { html: '<b>反応</b>：草とウサギのルールを1つずつ' }),
+            h('li', { html: '<b>全部を合わせる</b>：1マスを手で計算してみる' }),
+            h('li', { html: '<b>模様ができる理由と模様の地図</b>：狙った模様を出す' }),
+            h('li', { html: '<b>自由ラボ</b>：好きな模様を作る' })),
+          h('div', { class: 'row' }, h('a', { class: 'btn primary', href: '#/c/ch1', text: '第1章へ進む →' })),
+        ],
+      }));
+
+      root.appendChild(teacher(
+        '<p><b>ねらい：</b>「やってみたい」と思ってもらうこと（T24）。式の中身はまだ説明しなくて大丈夫です。</p>' +
+        '<p><b>問いかけの例：</b>「シマウマのしまは、だれかが1本ずつ描いたのかな？」「同じ式なのに、数を変えるだけで模様が変わるのはなぜだと思う？」（答えは第7章で）</p>' +
+        '<p><b>草とウサギのたとえ</b>は最後まで使います。ここで2人のキャラクターをしっかり印象づけてください。</p>'));
+    },
+  });
+})(window.RD = window.RD || {});
+
+
+RD.start();
+</script>
+</body>
+</html>
