@@ -259,13 +259,14 @@ details.teacher > summary::before { content: "📝 "; }
 /* ===== シミュレーション表示 ===== */
 .sim-view { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
 .sim-canvas-wrap { position: relative; width: 100%; max-width: 480px; margin: 0 auto; }
-.sim-canvas-wrap canvas { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); touch-action: none; image-rendering: pixelated; background: #000; }
-.sim-canvas-wrap.brush canvas { cursor: crosshair; }
+.sim-canvas-wrap canvas { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); touch-action: manipulation; image-rendering: pixelated; background: #000; }
+/* ブラシで描くときだけ、指の動きをページのスクロールに使わない */
+.sim-canvas-wrap.brush canvas { cursor: crosshair; touch-action: none; }
 .colorbar { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-size: 0.82rem; color: var(--ink-2); max-width: 480px; margin: 0 auto; width: 100%; }
 .colorbar .bar { height: 10px; border-radius: 5px; border: 1px solid var(--line); }
 .colorbar .cb-title { grid-column: 1 / -1; text-align: center; margin-bottom: -6px; }
 .readout { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-2); text-align: center; min-height: 1.5em; }
-.graph canvas, .bars canvas { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); background: var(--card); touch-action: none; }
+.graph canvas, .bars canvas { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); background: var(--card); touch-action: manipulation; }
 .graph-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.85rem; justify-content: center; }
 .graph-legend span::before { content: "━ "; }
 .playbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }

@@ -30,7 +30,7 @@
         sim.setParams({ F: pt.F, k: pt.k });
         sim.seed(pt.seed || 'random');
         // 最初から少し進めておく（白紙から始まると退屈なので）
-        sim.step(Math.min(1500, Math.round((pt.steps || 4000) * 0.3)));
+        sim.step(Math.min(600, Math.round((pt.steps || 4000) * 0.15)));
         view.render();
         caption.innerHTML = `いまの模様：<b>${pt.name}</b>（F = ${pt.F}, k = ${pt.k}）`;
       };

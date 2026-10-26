@@ -5,6 +5,7 @@
 //     id: 'ch1', no: 1, title: '変化の速さ', desc: 'トップに出す1行説明', goal: 'この章のねらい',
 //     required: 4,                 // クリアに必要な正解数（0 ならクリア条件なし）
 //     isCleared(solvedIds) { },    // 省略可。正解数ではなく、どの問題を解いたかでクリアを決めたいとき
+//     clearStatus(solvedIds) { },  // 省略可。isCleared を使う章で、未クリアのときの表示（例：'問題5が残っています'）
 //     render(root, ctx) { ... },  // root に中身を追加する
 //   });
 //
@@ -48,8 +49,9 @@
       theme = themes[(themes.findIndex((x) => x[0] === theme) + 1) % themes.length][0];
       RD.store.set('theme', theme);
       applyTheme(theme);
-      // グラフの色は CSS 変数から読むので描き直す
+      // グラフの色は CSS 変数から読むので描き直す。章で独自に描いている図は 'rd-theme' イベントで描き直す
       RD.Runner.all.forEach((r) => r.draw());
+      window.dispatchEvent(new Event('rd-theme'));
     });
     return h('header', { class: 'app-header' },
       h('a', { class: 'brand', href: '#/', text: '🌱🐇 草とウサギの模様ドリル' }),
@@ -120,7 +122,8 @@
         const done = c.isCleared ? c.isCleared(p.solved) : n >= c.required;
         if (!p.cleared && done) { RD.progress.setCleared(c.id); RD.ui.toast('🎉 この章をクリアしました！'); }
         const cleared = RD.progress.of(c.id).cleared;
-        progEl.textContent = cleared ? '✓ この章はクリア済み' : `クリアまで：${n} / ${c.required} 問`;
+        progEl.textContent = cleared ? '✓ この章はクリア済み'
+          : c.clearStatus ? `クリアまで：${c.clearStatus(p.solved)}` : `クリアまで：${n} / ${c.required} 問`;
         progEl.classList.toggle('cleared', cleared);
       } else {
         progEl.textContent = '';
@@ -157,7 +160,7 @@
     const i = chapters.indexOf(c);
     const prev = chapters[i - 1], next = chapters[i + 1];
     root.appendChild(h('nav', { class: 'ch-nav' },
-      prev ? h('a', { class: 'btn', href: '#/c/' + prev.id, text: `← ${prev.no ? '第' + prev.no + '章' : prev.title}` }) : h('span'),
+      prev ? h('a', { class: 'btn', href: '#/c/' + prev.id, text: `← ${prev.no ? '第' + prev.no + '章' : 'はじめに'}` }) : h('span'),
       h('a', { class: 'btn', href: '#/', text: 'もくじ' }),
       next ? h('a', { class: 'btn primary', href: '#/c/' + next.id, text: `${next.no ? '第' + next.no + '章' : next.title} →` }) : h('span')));
   }

@@ -46,7 +46,7 @@ core（`src/core/*`、`src/styles/base.css`、`build.mjs`）は**変更しない
 | 家計簿 | `new RD.Ledger({sim, index, show})`、`.show(i)`、`.update()` |
 | 式（色分け） | `new RD.Equation({sim, interactive, show, onChange})`（項クリックで `sim.terms` を切り替え） |
 | 問題 | `ctx.quiz(spec)`。種類は choice / predict / number / grid / match / fill / custom（`src/core/quiz.js` 先頭） |
-| その他 | `ctx.useCalc()`（電卓）、`ctx.onCleanup(fn)`、`ctx.params`、`ctx.markCleared()`、`RD.ui.toast(msg)`、`RD.patterns`、`RD.SIM_DEFAULTS`、`RD.collection` |
+| その他 | テーマ切り替え時に `window` へ `rd-theme` イベント（独自に描いた図はこれで描き直す）、`ctx.useCalc()`（電卓）、`ctx.onCleanup(fn)`、`ctx.params`、`ctx.markCleared()`、`RD.ui.toast(msg)`、`RD.patterns`、`RD.SIM_DEFAULTS`、`RD.collection` |
 
 ## エンジンの約束
 
