@@ -36,7 +36,7 @@
   }
 
   // 見た目（ノート / かわいい）。明るさ（data-theme）とは別に、data-look で切り替える。
-  const LOOKS = [['note', '📓 ノート'], ['cute', '🎀 かわいい']];
+  const LOOKS = [['note', '📓 ノート'], ['cute', '🐣 かわいい']];
   function applyLook(look) {
     if (look === 'cute') document.documentElement.setAttribute('data-look', 'cute');
     else document.documentElement.removeAttribute('data-look');

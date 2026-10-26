@@ -10,7 +10,7 @@
     sunset: { name: '夕焼け', stops: ['#1b1035', '#6b2d6b', '#e0604a', '#f7d38a'] },
     coral: { name: '海', stops: ['#0b2a3a', '#1f7a8c', '#f2b880', '#fff4e6'] },
     mono: { name: '白黒', stops: ['#ffffff', '#111111'] },
-    candy: { name: 'パステル', stops: ['#c8ecd9', '#fbe3ec', '#ffb3cf', '#f0709f', '#9c3c74'] },
+    candy: { name: 'パステル（ミントとたまご）', stops: ['#cfeec0', '#eef6c4', '#ffe68a', '#f6bb5f', '#b8792f'] },
     grass: { name: '草の量', stops: ['#f1ead2', '#bcd58f', '#3a8a35'] },
   };
   // ウサギの濃さ v の既定のパレット（見た目が「かわいい」ならパステル）
