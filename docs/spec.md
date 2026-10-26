@@ -3,6 +3,7 @@
 仮タイトル：**草とウサギで模様をつくる ―― 反応拡散ドリル**
 
 材料（つまずき T、たとえ A、仕掛け M）は [teaching-materials.md](teaching-materials.md) を参照。
+テーマに依らない共通の決まりは [drill-framework.md](drill-framework.md)（汎用仕様）にまとめてあり、この仕様書はその適用例です。
 
 ---
 

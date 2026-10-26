@@ -7,6 +7,7 @@
 - [仕様書](docs/spec.md)：決定事項、章構成、画面、技術
 - [教材の材料集](docs/teaching-materials.md)：つまずきポイント（T）、たとえ話（A）、説明の仕掛け（M）
 - [デザインと雰囲気](docs/design.md)：見た目、言葉づかい、動き、ゲームっぽさの度合い
+- [汎用仕様](docs/drill-framework.md)：テーマに依らない「触って学ぶ HTML ドリル」の作り方（別のテーマで作るときのひな形つき）
 - [開発計画](docs/dev-plan.md) / [章を書くための手引き](docs/chapter-guide.md)
 
 ## 使い方
