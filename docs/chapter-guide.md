@@ -1,6 +1,6 @@
 # 章を書くための手引き
 
-章担当（人もエージェントも）向けの手引きです。まず [spec.md](spec.md)（自分の章）、[teaching-materials.md](teaching-materials.md)（T / A / M の材料）、[dev-plan.md](dev-plan.md) を読んでください。お手本は `src/chapters/prologue.js` です。
+章担当（人もエージェントも）向けの手引きです。まず [spec.md](spec.md)（自分の章）、[design.md](design.md)（雰囲気と言葉づかい）、[teaching-materials.md](teaching-materials.md)（T / A / M の材料）、[dev-plan.md](dev-plan.md) を読んでください。お手本は `src/chapters/prologue.js` です。
 
 ## 書いてよいファイル
 
