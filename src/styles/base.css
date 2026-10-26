@@ -240,10 +240,9 @@ details.teacher > summary::before { content: "📝 "; }
 .toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.95rem; }
 .toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
 
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.seg button { border: 0; background: var(--card); padding: 4px 12px; cursor: pointer; min-height: 34px; }
-.seg button + button { border-left: 1px solid var(--line); }
-.seg button.on { background: var(--accent); color: var(--accent-ink); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.seg button { border: 1px solid var(--line); border-radius: 8px; background: var(--card); padding: 4px 12px; cursor: pointer; min-height: 34px; white-space: nowrap; }
+.seg button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 
 /* 数字のマス */
 .numgrid { display: inline-grid; gap: 3px; font-family: var(--font-mono); }

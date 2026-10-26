@@ -60,36 +60,34 @@ function step(u, v, u2, v2, N, Du, Dv, F, k, dt) {
 }
 
 /**
- * Seed styles (same definitions should be used in the app):
- *  center: one square, side = round(N*0.08), in the middle. u=0.5, v=0.25.
- *  random: 10 squares, side = round(N*0.04), random positions. u=0.5, v=0.25..0.5.
- *  noise : the grid is cut into 4x4 blocks; each block is a seed (u=0.5,v=0.25..0.5)
- *          with probability 0.08.
- *  All styles then add ±0.02 noise to v inside the seeded cells only.
+ * Seed styles — identical to the app engine (src/core/sim.js Sim.seed):
+ *  r = max(3, round(N/24))  (square of side 2r+1, u=0.5, v=0.25)
+ *  center: one square at (N>>1, N>>1)
+ *  random: max(4, round(N*N/2500)) squares at random positions
+ *  noise : max(8, round(N*N/1200)) squares of radius max(2, r-1), then ±0.025 noise
+ *          added to u and v everywhere (v clamped at 0)
+ *  line  : (tool only, experimental) a bar of squares from the centre to the right edge
  */
 function makeInitial(N, seed, rng, seedV = 0.25) {
   const u = new Float32Array(N * N).fill(1);
   const v = new Float32Array(N * N);
-  const put = (cx, cy, s, vv) => {
-    for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) {
-      const x = (cx + dx + N) % N, y = (cy + dy + N) % N;
-      const i = y * N + x;
-      u[i] = 0.5; v[i] = vv + (rng() - 0.5) * 0.04;
+  const sq = (cx, cy, r) => {
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      const i = ((cy + dy + N * 4) % N) * N + ((cx + dx + N * 4) % N);
+      u[i] = 0.5; v[i] = seedV;
     }
   };
-  if (seed === 'center') {
-    const s = Math.round(N * 0.08);
-    put(((N - s) / 2) | 0, ((N - s) / 2) | 0, s, seedV);
-  } else if (seed === 'random') {
-    const s = Math.round(N * 0.04);
-    for (let n = 0; n < 10; n++) put((rng() * N) | 0, (rng() * N) | 0, s, 0.25 + 0.25 * rng());
+  const r = Math.max(3, Math.round(N / 24));
+  if (seed === 'center') sq(N >> 1, N >> 1, r);
+  else if (seed === 'random') {
+    const n = Math.max(4, Math.round(N * N / 2500));
+    for (let c = 0; c < n; c++) sq(Math.floor(rng() * N), Math.floor(rng() * N), r);
   } else if (seed === 'noise') {
-    for (let by = 0; by < N; by += 4) for (let bx = 0; bx < N; bx += 4)
-      if (rng() < 0.08) put(bx, by, 4, 0.25 + 0.25 * rng());
+    const n = Math.max(8, Math.round(N * N / 1200));
+    for (let c = 0; c < n; c++) sq(Math.floor(rng() * N), Math.floor(rng() * N), Math.max(2, r - 1));
+    for (let i = 0; i < N * N; i++) { u[i] += (rng() - 0.5) * 0.05; v[i] = Math.max(0, v[i] + (rng() - 0.5) * 0.05); }
   } else if (seed === 'line') {
-    // half line (useful for spirals): a horizontal bar from the center to the right
-    const s = Math.round(N * 0.04);
-    for (let x = N / 2; x < N - s; x += s) put(x | 0, (N / 2) | 0, s, 0.25);
+    for (let x = N >> 1; x < N - r; x += r) sq(x, N >> 1, r);
   } else throw new Error('unknown seed ' + seed);
   return { u, v };
 }
