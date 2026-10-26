@@ -124,7 +124,7 @@
           if (Math.abs(v - 21) < 1e-6) return '<p>となりの<b>合計</b>（30）を使っていませんか？ 使うのは<b>平均</b>です。</p>';
           return null;
         },
-        explain: `<p>隣の平均は 15、自分は 12 なので差は +3。その半分の 1.5 だけ近づいて <b>13.5</b> です。デモの棒をクリックすると、同じ計算をコンピュータがしているのが見られます。</p>`,
+        explain: `<p>隣の平均は 15、自分は 12 なので差は +3。その半分の 1.5 だけ近づいて <b>13.5</b> です。デモの棒をクリック（タップ）すると、同じ計算をコンピュータがしているのが見られます。</p>`,
       }));
 
       const mt = DATA.mountain, ti = DATA.top;
@@ -317,7 +317,7 @@
           h('div', { class: 'ch3-axis' }, h('span', { text: '1' }), h('span', { text: 'マスの番号' }), h('span', { text: String(N) })),
           runner.el, dSlider.el, dtNote, status,
           h('div', { class: 'ledger-wrap' }, detail),
-          h('p', { class: 'muted', html: '棒をクリックすると、そのマスの計算が見られます。両はしのマスは、反対のはしとつながっています。' }));
+          h('p', { class: 'muted', html: '棒をクリック（タップ）すると、そのマスの計算が見られます。両はしのマスは、反対のはしとつながっています。' }));
         return { el, sim, runner };
       }
 

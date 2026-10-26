@@ -109,7 +109,8 @@
 /* ===== ベース ===== */
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { -webkit-text-size-adjust: 100%; }
+/* scrollIntoView やページ内リンクで、上にくっついたヘッダーの下に隠れないように */
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 64px; }
 body {
   margin: 0;
   font-family: var(--font);
@@ -268,7 +269,8 @@ details.teacher > summary::before { content: "📝 "; }
 
 /* ===== シミュレーション表示 ===== */
 .sim-view { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
-.sim-canvas-wrap { position: relative; width: 100%; max-width: 480px; margin: 0 auto; }
+/* 横向きのスマホでも草原全体が画面に入るように、画面の高さでも大きさをおさえる */
+.sim-canvas-wrap { position: relative; width: 100%; max-width: min(480px, calc(100svh - 88px)); margin: 0 auto; }
 .sim-canvas-wrap canvas { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); touch-action: manipulation; image-rendering: pixelated; background: #000; }
 /* ブラシで描くときだけ、指の動きをページのスクロールに使わない */
 .sim-canvas-wrap.brush canvas { cursor: crosshair; touch-action: none; }
@@ -366,7 +368,8 @@ details.teacher > summary::before { content: "📝 "; }
 .muted { color: var(--ink-2); font-size: 0.9rem; }
 .center { text-align: center; }
 .mt0 { margin-top: 0; }
-.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 8px 18px; border-radius: 999px; z-index: 50; font-size: 0.95rem; box-shadow: var(--shadow); }
+/* left: 50% のままだと幅が画面の半分で折り返されるので、幅は中身に合わせる。下のボタンを押せなくしない */
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); text-align: center; pointer-events: none; background: var(--ink); color: var(--paper); padding: 8px 18px; border-radius: 999px; z-index: 50; font-size: 0.95rem; box-shadow: var(--shadow); }
 
 @media (max-width: 520px) {
   body { font-size: 15.5px; }
@@ -378,6 +381,29 @@ details.teacher > summary::before { content: "📝 "; }
   .match-item select { width: 100%; max-width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+
+/* ===== 指で操作する端末（スマホ・タブレット） ===== */
+@media (pointer: coarse) {
+  /* 押す場所を指の大きさに（高さ 36px 以上） */
+  .btn.small { min-height: 36px; }
+  .app-header .icon-btn { min-height: 38px; }
+  .seg button { min-height: 36px; }
+  .toggle { min-height: 36px; }
+  .toggle input { width: 22px; height: 22px; }
+  .slider input[type=range] { height: 36px; }
+  .equation .term { padding: 4px 6px; min-width: 40px; text-align: center; }
+  .numgrid .cell { min-height: 40px; }
+  .numgrid .cell input { height: auto; align-self: stretch; }
+  .answer-row input[type=text], .match-item select { min-height: 38px; }
+  /* iOS は 16px 未満の入力欄をタップすると画面を拡大してしまうので、入力欄の文字は 16px にする */
+  input[type=text], input:not([type]), select, textarea { font-size: 16px !important; }
+  /* トーストは電卓ボタンの上に出す */
+  .toast { bottom: 68px; }
+}
+/* 横向きのスマホなど、高さが低い画面：電卓は電卓ボタンの左に出す（上にはみ出さないように） */
+@media (max-height: 520px) {
+  .calc-panel { bottom: 8px; right: 124px; max-height: calc(100vh - 16px); overflow-y: auto; }
+}
 
 /* =====================================================================
    見た目「かわいい」（data-look="cute"）
@@ -1115,6 +1141,17 @@ details.teacher > summary::before { content: "📝 "; }
     new ResizeObserver((ents) => { const nw = Math.round(ents[0].contentRect.width); if (nw && nw !== w) { w = nw; fn(); } }).observe(el);
   }
 
+  // タップの判定。マウスは押した瞬間、指やペンは「ほとんど動かさずにはなした」ときに fn(ev) を呼ぶ
+  // （スクロールが始まると pointercancel が来るので、スクロールではえらばない）。
+  function onTap(fn) {
+    let down = null;
+    return {
+      down(ev) { if (ev.pointerType === 'mouse') { down = null; fn(ev); } else down = { x: ev.clientX, y: ev.clientY }; },
+      up(ev) { if (down && Math.hypot(ev.clientX - down.x, ev.clientY - down.y) < 12) fn(ev); down = null; },
+      cancel() { down = null; },
+    };
+  }
+
   // ---- 草原ビュー（2次元） ----
   // opts: field 'v'|'u', palette, range [lo, hi], brush {mode, radius} | null,
   //       onPick(i), onPaint(), colorbar(true), title（カラーバーの見出し）, hiLabel（カラーバー右端の文字）,
@@ -1141,7 +1178,7 @@ details.teacher > summary::before { content: "📝 "; }
       this.off.width = w; this.off.height = hgt;
       this.img = this.off.getContext('2d').createImageData(w, hgt);
       this.wrap = h('div', { class: 'sim-canvas-wrap' + (this.brush ? ' brush' : '') }, this.canvas);
-      if (opts.maxCss) this.wrap.style.maxWidth = opts.maxCss;
+      if (opts.maxCss) this.wrap.style.maxWidth = `min(${opts.maxCss}, calc(100svh - 88px))`;
       this.cbBar = h('div', { class: 'bar' });
       this.cbTitle = h('div', { class: 'cb-title' });
       this.cbLo = h('span'); this.cbHi = h('span');
@@ -1182,20 +1219,20 @@ details.teacher > summary::before { content: "📝 "; }
         this.render();
         this.onPaint && this.onPaint();
       };
+      // 指（タッチ）でマスをえらぶのは、指をはなしたとき（動かさずにはなしたときだけ）。
+      // 草原の上からスクロールしたときに、えらんだマスが変わらないようにする。マウスは押した瞬間にえらぶ。
+      const tap = onTap((ev) => { const [x, y] = this._cellAt(ev); this.pick(this.sim.idx(x, y)); });
       this.canvas.addEventListener('pointerdown', (ev) => {
         if (this.brush) {
           painting = true; last = null;
           this.canvas.setPointerCapture(ev.pointerId);
           paintAt(ev);
-        } else {
-          const [x, y] = this._cellAt(ev);
-          this.pick(this.sim.idx(x, y));
-        }
+        } else tap.down(ev);
       });
       this.canvas.addEventListener('pointermove', (ev) => { if (painting && this.brush) paintAt(ev); });
       const end = () => { painting = false; last = null; };
-      this.canvas.addEventListener('pointerup', end);
-      this.canvas.addEventListener('pointercancel', end);
+      this.canvas.addEventListener('pointerup', (ev) => { if (!painting && !this.brush) tap.up(ev); end(); });
+      this.canvas.addEventListener('pointercancel', () => { tap.cancel(); end(); });
     }
     pick(i) {
       this.picked = i;
@@ -1239,7 +1276,7 @@ details.teacher > summary::before { content: "📝 "; }
               : `草 <i class="v">u</i> = ${fmt(sim.u[i], 3)}　ウサギ <i class="v">v</i> = ${fmt(sim.v[i], 3)}`);
         }
       } else if (this.showReadout && !this.readout.textContent) {
-        this.readout.textContent = this.brush ? 'なぞるとウサギを放せます' : 'マスをクリックすると値が見られます';
+        this.readout.textContent = this.brush ? 'なぞるとウサギを放せます' : 'マスをクリック（タップ）すると値が見られます';
       }
     }
     // サムネイル（コレクション用）
@@ -1276,7 +1313,7 @@ details.teacher > summary::before { content: "📝 "; }
       observeResize(this.canvas, () => this.render());
       if (this.o.onPick) {
         this.canvas.style.cursor = 'pointer';
-        this.canvas.addEventListener('pointerdown', (ev) => {
+        const tap = onTap((ev) => {
           const a = this.o.get();
           const r = this.canvas.getBoundingClientRect();
           const i = Math.floor(((ev.clientX - r.left) / r.width) * a.length);
@@ -1284,6 +1321,9 @@ details.teacher > summary::before { content: "📝 "; }
           this.o.onPick(this.o.highlight);
           this.render();
         });
+        this.canvas.addEventListener('pointerdown', (ev) => tap.down(ev));
+        this.canvas.addEventListener('pointerup', (ev) => tap.up(ev));
+        this.canvas.addEventListener('pointercancel', () => tap.cancel());
       }
       this.render();
     }
@@ -1370,7 +1410,8 @@ details.teacher > summary::before { content: "📝 "; }
   //       speeds [{label, spf}]（spf = 1フレームあたりのステップ数。0.1 なら10フレームに1回）, speed（初期 index）,
   //       autoplay, showTime, timeLabel(sim),
   //       stopWhen(sim) → 止める理由の文字列 | false（毎コマ確認）, onStop(reason),
-  //       watch（この要素が画面に見えているときだけ動かす。既定は再生バー自身）
+  //       watch（この要素が画面に見えているときだけ動かす。既定は再生バー自身）,
+  //       budgetMs（1フレームで計算に使う時間の上限。遅い端末で画面が固まらないよう、こえたらそのフレームの残りのコマは捨てる）
   class Runner {
     constructor(opts) {
       this.o = Object.assign({ speeds: [{ label: 'ゆっくり', spf: 0.25 }, { label: 'ふつう', spf: 1 }, { label: 'はやい', spf: 8 }], speed: 1, showTime: true }, opts);
@@ -1408,7 +1449,9 @@ details.teacher > summary::before { content: "📝 "; }
     setEnabled(on) { if (!on) this.pause(); this.playBtn.disabled = !on; this.stepBtn.disabled = !on; }
     destroy() { this.pause(); this.io && this.io.disconnect(); Runner.all.delete(this); }
     advance(n) {
+      const t0 = this.o.budgetMs && n > 1 ? performance.now() : 0;
       for (let i = 0; i < n; i++) {
+        if (t0 && i > 0 && performance.now() - t0 > this.o.budgetMs) break;
         this.sim.step(1);
         this.o.onStep && this.o.onStep(this.sim);
         if (this.sim.exploded) { this.pause(); this.o.onExplode && this.o.onExplode(); break; }
@@ -2624,7 +2667,7 @@ details.teacher > summary::before { content: "📝 "; }
           p('そこで、草原を小さなマス目に区切って、<b>マスごとに</b>草の量を書きこみます。「5×5 の草原」の図は 25 マスの草原です。色が濃いほど草が多いところです。'),
           note('<p>☀️ <b>天気予報の気温の地図</b>を思い出してください。「東京 18℃、札幌 9℃、那覇 25℃…」と、場所ごとに気温がちがいますね。気温は1つの数ではなく、<b>場所ごとの数の集まり</b>（地図）です。</p>', 'story'),
           p('草の量を <i class="v t-u">u</i> と書くとき、<i class="v t-u">u</i> は1つの数ではありません。<b>マスの数だけ数がある「地図」</b>です。このように、場所ごとに値を持つものを<b>場</b>（ば）といいます。'),
-          p('マスをクリックすると、そのマスの <i class="v t-u">u</i> が見られます。'),
+          p('マスをクリック（タップ）すると、そのマスの <i class="v t-u">u</i> が見られます。'),
           more('「場」ということばについて',
             '<p>物理では、場所ごとに値が決まっているものを「場（field）」とよびます。気温の場、風の場、磁石のまわりの磁場など。このドリルの草の量 <i>u</i> も、ウサギの濃さ <i>v</i> も「場」です。</p>' +
             '<p>ふつうの方程式の <i>x</i> は「1つの数」を表しますが、ここでの <i>u</i> は「地図まるごと」を表しています。ここが大きなちがいです。</p>'),
@@ -2958,7 +3001,7 @@ details.teacher > summary::before { content: "📝 "; }
           if (Math.abs(v - 21) < 1e-6) return '<p>となりの<b>合計</b>（30）を使っていませんか？ 使うのは<b>平均</b>です。</p>';
           return null;
         },
-        explain: `<p>隣の平均は 15、自分は 12 なので差は +3。その半分の 1.5 だけ近づいて <b>13.5</b> です。デモの棒をクリックすると、同じ計算をコンピュータがしているのが見られます。</p>`,
+        explain: `<p>隣の平均は 15、自分は 12 なので差は +3。その半分の 1.5 だけ近づいて <b>13.5</b> です。デモの棒をクリック（タップ）すると、同じ計算をコンピュータがしているのが見られます。</p>`,
       }));
 
       const mt = DATA.mountain, ti = DATA.top;
@@ -3151,7 +3194,7 @@ details.teacher > summary::before { content: "📝 "; }
           h('div', { class: 'ch3-axis' }, h('span', { text: '1' }), h('span', { text: 'マスの番号' }), h('span', { text: String(N) })),
           runner.el, dSlider.el, dtNote, status,
           h('div', { class: 'ledger-wrap' }, detail),
-          h('p', { class: 'muted', html: '棒をクリックすると、そのマスの計算が見られます。両はしのマスは、反対のはしとつながっています。' }));
+          h('p', { class: 'muted', html: '棒をクリック（タップ）すると、そのマスの計算が見られます。両はしのマスは、反対のはしとつながっています。' }));
         return { el, sim, runner };
       }
 
@@ -3676,7 +3719,7 @@ details.teacher > summary::before { content: "📝 "; }
           else { sim.reset(0, 0); for (let i = 0; i < sim.n; i++) sim.u[i] = Math.random(); }
         };
         const showPick = () => {
-          if (view.picked == null) { pickEl.textContent = 'マスをクリックすると値が見られます'; return; }
+          if (view.picked == null) { pickEl.textContent = 'マスをクリック（タップ）すると値が見られます'; return; }
           const [x, y] = sim.xy(view.picked);
           pickEl.innerHTML = `えらんだマス（${x + 1}, ${y + 1}）の濃さ <i class="v">u</i> ＝ <b>${fmt(sim.u[view.picked], 4)}</b>`;
         };
@@ -4300,9 +4343,13 @@ details.teacher > summary::before { content: "📝 "; }
         let done = 0;
         const tick = () => {
           if (!cmpBox.isConnected) { busy = false; return; }
-          const n = Math.min(150, cmpSteps - done);
-          sims.forEach((s) => s.step(n));
-          done += n;
+          // 遅いスマホでも固まらないよう、少しずつ（約 12ms ずつ）計算する
+          const t0 = performance.now();
+          while (done < cmpSteps && performance.now() - t0 < 12) {
+            const n = Math.min(10, cmpSteps - done);
+            sims.forEach((s) => s.step(n));
+            done += n;
+          }
           views.forEach((v) => v.render());
           cmpMsg.textContent = `${done} / ${cmpSteps} コマ`;
           if (done < cmpSteps) { setTimeout(tick, 0); return; }
@@ -4997,7 +5044,7 @@ details.teacher > summary::before { content: "📝 "; }
       root.appendChild(step({
         title: '草原で起きていること',
         text: [
-          p('デモの草原では、まん中にウサギの群れを1つだけ放しました。▶ 再生して、何が起きるか見てください。グラフは、点線の上の<b class="t-u">草</b>と<b class="t-v">ウサギ</b>の量です。点線は、ウサギがいちばん濃い場所を自動で通ります（草原をクリックすると、点線の場所を自分で決められます）。'),
+          p('デモの草原では、まん中にウサギの群れを1つだけ放しました。▶ 再生して、何が起きるか見てください。グラフは、点線の上の<b class="t-u">草</b>と<b class="t-v">ウサギ</b>の量です。点線は、ウサギがいちばん濃い場所を自動で通ります（草原をクリック（タップ）すると、点線の場所を自分で決められます）。'),
           h('ol', { class: 'ch7-story' },
             h('li', { html: '<b>近くは仲間を増やす：</b>ウサギはペアで出会うと増えます（<span class="t-react">uv²</span>）。群れの中は出会いが多いので、群れはどんどん育ちます。' }),
             h('li', { html: '<b>草を食べつくす：</b>育った群れは、その場所の草を食べつくします。グラフで、ウサギの山のところだけ草がへこんでいます。' }),
@@ -5034,12 +5081,13 @@ details.teacher > summary::before { content: "📝 "; }
         const ca = h('div', { class: 'cnt' }), cb = h('div', { class: 'cnt' });
         const wrapB = h('div', { class: 'ch7-hide covered' }, vb.el);
         const el = h('div', { class: 'ch7-pair' }, h('div', null, h('div', { class: 'lbl', html: la }), va.el, ca), h('div', null, h('div', { class: 'lbl', html: lb }), wrapB, cb));
-        return { a, b, va, vb, ca, cb, el, reseed, uncover: () => wrapB.classList.remove('covered') };
+        return { a, b, va, vb, ca, cb, el, reseed, uncover: () => wrapB.classList.remove('covered'), covered: () => wrapB.classList.contains('covered') };
       };
       const ex1 = mkPair(maze, `いつもの草原<br><i>D<sub>u</sub></i> = ${fmt(Du0)}, <i>D<sub>v</sub></i> = ${fmt(Dv0)}`, `ウサギも速い草原<br><i>D<sub>u</sub></i> = <i>D<sub>v</sub></i> = ${fmt(Du0)}`, 'random', {}, { Dv: Du0 }, 3);
       const ex1Runner = new RD.Runner({
         sim: pairSim(ex1.a, ex1.b), onFrame: () => { ex1.va.render(); ex1.vb.render(); }, speeds: [{ label: 'ふつう', spf: 8 }, { label: 'はやい', spf: 24 }], speed: 1,
-        onReset: () => ex1.reseed(),
+        // 予想する前は、↺ を押しても再生できないままにする（↺ は再生ボタンを使えるように戻すため）
+        onReset: () => { ex1.reseed(); if (ex1.covered()) ex1Runner.setEnabled(false); },
       });
       ex1Runner.setEnabled(false);
       root.appendChild(step({
@@ -5075,7 +5123,7 @@ details.teacher > summary::before { content: "📝 "; }
       const ex2Count = () => { ex2.ca.textContent = `群れの数：${countGroups(ex2.a)}`; if (!ex2.cb.parentNode.querySelector('.covered')) ex2.cb.textContent = `群れの数：${countGroups(ex2.b)}`; };
       const ex2Runner = new RD.Runner({
         sim: pairSim(ex2.a, ex2.b), onFrame: () => { ex2.va.render(); ex2.vb.render(); if (ex2Frames++ % 20 === 0) ex2Count(); }, speeds: [{ label: 'ふつう', spf: 8 }, { label: 'はやい', spf: 24 }], speed: 1,
-        onReset: () => { ex2.reseed(); ex2Count(); },
+        onReset: () => { ex2.reseed(); ex2Count(); if (ex2.covered()) ex2Runner.setEnabled(false); },
       });
       ex2Runner.setEnabled(false);
       root.appendChild(step({
@@ -5145,7 +5193,7 @@ details.teacher > summary::before { content: "📝 "; }
       const ex3 = mkPair(maze, '種：数か所', '種：あちこち少しずつ', 'random', {}, {}, 9);
       ex3.reseed = () => { ex3.a.seed('random', seeded(9)); ex3.b.seed('noise', seeded(9)); };
       ex3.reseed();
-      const ex3Runner = new RD.Runner({ sim: pairSim(ex3.a, ex3.b), onFrame: () => { ex3.va.render(); ex3.vb.render(); }, speeds: [{ label: 'ふつう', spf: 8 }, { label: 'はやい', spf: 24 }], speed: 1, onReset: () => ex3.reseed() });
+      const ex3Runner = new RD.Runner({ sim: pairSim(ex3.a, ex3.b), onFrame: () => { ex3.va.render(); ex3.vb.render(); }, speeds: [{ label: 'ふつう', spf: 8 }, { label: 'はやい', spf: 24 }], speed: 1, onReset: () => { ex3.reseed(); if (ex3.covered()) ex3Runner.setEnabled(false); } });
       ex3Runner.setEnabled(false);
       root.appendChild(step({
         title: '種を変えたら、模様の種類も変わる？',
@@ -5280,6 +5328,7 @@ details.teacher > summary::before { content: "📝 "; }
       }
       const cRunner = new RD.Runner({
         sim: cSim, autoplay: true, speeds: [{ label: 'ふつう', spf: 6 }, { label: 'はやい', spf: 16 }, { label: 'とても速い', spf: 36 }], speed: 1,
+        budgetMs: 24, // 遅いスマホでは1フレームのコマ数をおさえる（判定はコマ数で数えるので結果は同じ）
         onFrame: () => { cView.render(); showProg(); },
         onStep: () => { obs++; if (obs >= OBS_STEPS && !judged) judgeNow(); },
         onReset: () => { cSim.seed(cSeed); changed(); },
@@ -5311,7 +5360,7 @@ details.teacher > summary::before { content: "📝 "; }
         const tick = () => {
           if (genCancelled) return;
           const t0 = performance.now();
-          while (performance.now() - t0 < 8) {
+          while (performance.now() - t0 < 16) {
             if (!cur) {
               cur = queue.shift();
               if (!cur) return;
@@ -5321,7 +5370,7 @@ details.teacher > summary::before { content: "📝 "; }
               shots = [];
             }
             const total = cur.steps || 6000, next = Math.round(FRAMES[shots.length] * total);
-            gs.step(Math.min(100, next - gs.steps));
+            gs.step(Math.min(20, next - gs.steps)); // 少しずつ（遅いスマホでも 1 回の計算が長くならないように）
             if (gs.steps >= next) {
               fv.render();
               const url = fv.thumbnail(144);
@@ -5483,6 +5532,10 @@ details.teacher > summary::before { content: "📝 "; }
 .ch8-msg.warn { color: var(--ng); }
 .ch8-fps { font-size: 0.75rem; color: var(--ink-3); text-align: right; font-family: var(--font-mono); }
 .ch8-sel { padding: 4px 8px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); max-width: 100%; }
+@media (pointer: coarse) {
+  .ch8-coll .del { width: 30px; height: 30px; line-height: 28px; }
+  .ch8-sel, .ch8-param input[type=text], .ch8-save input { min-height: 38px; }
+}
 `;
 
   const SEEDS = [{ value: 'center', label: 'まん中に1つ' }, { value: 'random', label: '数か所' }, { value: 'noise', label: 'あちこち少しずつ' }];
@@ -5528,6 +5581,8 @@ details.teacher > summary::before { content: "📝 "; }
       let fpsT = performance.now(), fpsN = 0, fpsSteps = sim.steps;
       const runner = new RD.Runner({
         sim, autoplay: true,
+        // 遅いスマホでも、なぞって描くときに画面がかくかくしないように（速い PC ではこの上限に届かない）
+        budgetMs: 30,
         speeds: [{ label: 'ゆっくり', spf: 1 }, { label: 'ふつう', spf: 6 }, { label: 'はやい', spf: 16 }, { label: 'とても速い', spf: 36 }], speed: 2,
         onFrame: () => {
           view.render();
@@ -5546,7 +5601,7 @@ details.teacher > summary::before { content: "📝 "; }
       const toolSeg = RD.ui.segmented([{ value: 'rabbit', label: '🐇 ウサギを放す' }, { value: 'erase', label: '🧽 消しゴム' }, { value: 'look', label: '🔍 値を見る' }], tool, (t) => {
         tool = t;
         view.setBrush(t === 'look' ? null : { mode: t, radius });
-        view.readout.textContent = t === 'look' ? 'マスをクリックすると値が見られます' : t === 'erase' ? 'なぞるとウサギを消せます' : 'なぞるとウサギを放せます';
+        view.readout.textContent = t === 'look' ? 'マスをクリック（タップ）すると値が見られます' : t === 'erase' ? 'なぞるとウサギを消せます' : 'なぞるとウサギを放せます';
       });
       const radS = RD.ui.slider({ label: 'ふでの太さ', min: 1, max: 14, step: 1, value: radius, format: (v) => `${v} マス`, onInput: (v) => { radius = v; if (view.brush) view.setBrush({ mode: tool, radius }); } });
       const seedSeg = RD.ui.segmented(SEEDS, seedStyle, (v) => { seedStyle = v; sim.seed(seedStyle); view.render(); });
@@ -5753,13 +5808,22 @@ details.teacher > summary::before { content: "📝 "; }
       const sim = new RD.Sim({ w: size, h: size });
       const view = new RD.FieldView(sim, { readout: false });
       let current = pats[0];
+      // 最初から少し進めておく（白紙から始まると退屈なので）。遅いスマホで画面が固まらないよう、数フレームに分けて計算する
+      let warm = 0, warmRaf = 0;
+      const warmUp = () => {
+        const t0 = performance.now();
+        while (warm > 0 && performance.now() - t0 < 12) { const n = Math.min(20, warm); sim.step(n); warm -= n; }
+        view.render();
+        warmRaf = warm > 0 ? requestAnimationFrame(warmUp) : 0;
+      };
+      ctx.onCleanup(() => cancelAnimationFrame(warmRaf));
       const load = (pt) => {
         current = pt;
         sim.setParams({ F: pt.F, k: pt.k });
         sim.seed(pt.seed || 'random');
-        // 最初から少し進めておく（白紙から始まると退屈なので）
-        sim.step(Math.min(600, Math.round((pt.steps || 4000) * 0.15)));
-        view.render();
+        warm = Math.min(600, Math.round((pt.steps || 4000) * 0.15));
+        cancelAnimationFrame(warmRaf);
+        warmUp();
         caption.innerHTML = `いまの模様：<b>${pt.name}</b>（F = ${pt.F}, k = ${pt.k}）`;
       };
       const caption = h('div', { class: 'readout' });

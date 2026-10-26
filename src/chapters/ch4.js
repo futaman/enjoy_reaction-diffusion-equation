@@ -346,7 +346,7 @@
           else { sim.reset(0, 0); for (let i = 0; i < sim.n; i++) sim.u[i] = Math.random(); }
         };
         const showPick = () => {
-          if (view.picked == null) { pickEl.textContent = 'マスをクリックすると値が見られます'; return; }
+          if (view.picked == null) { pickEl.textContent = 'マスをクリック（タップ）すると値が見られます'; return; }
           const [x, y] = sim.xy(view.picked);
           pickEl.innerHTML = `えらんだマス（${x + 1}, ${y + 1}）の濃さ <i class="v">u</i> ＝ <b>${fmt(sim.u[view.picked], 4)}</b>`;
         };

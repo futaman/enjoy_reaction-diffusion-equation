@@ -528,7 +528,7 @@
       root.appendChild(step({
         title: '草原で起きていること',
         text: [
-          p('デモの草原では、まん中にウサギの群れを1つだけ放しました。▶ 再生して、何が起きるか見てください。グラフは、点線の上の<b class="t-u">草</b>と<b class="t-v">ウサギ</b>の量です。点線は、ウサギがいちばん濃い場所を自動で通ります（草原をクリックすると、点線の場所を自分で決められます）。'),
+          p('デモの草原では、まん中にウサギの群れを1つだけ放しました。▶ 再生して、何が起きるか見てください。グラフは、点線の上の<b class="t-u">草</b>と<b class="t-v">ウサギ</b>の量です。点線は、ウサギがいちばん濃い場所を自動で通ります（草原をクリック（タップ）すると、点線の場所を自分で決められます）。'),
           h('ol', { class: 'ch7-story' },
             h('li', { html: '<b>近くは仲間を増やす：</b>ウサギはペアで出会うと増えます（<span class="t-react">uv²</span>）。群れの中は出会いが多いので、群れはどんどん育ちます。' }),
             h('li', { html: '<b>草を食べつくす：</b>育った群れは、その場所の草を食べつくします。グラフで、ウサギの山のところだけ草がへこんでいます。' }),
@@ -565,12 +565,13 @@
         const ca = h('div', { class: 'cnt' }), cb = h('div', { class: 'cnt' });
         const wrapB = h('div', { class: 'ch7-hide covered' }, vb.el);
         const el = h('div', { class: 'ch7-pair' }, h('div', null, h('div', { class: 'lbl', html: la }), va.el, ca), h('div', null, h('div', { class: 'lbl', html: lb }), wrapB, cb));
-        return { a, b, va, vb, ca, cb, el, reseed, uncover: () => wrapB.classList.remove('covered') };
+        return { a, b, va, vb, ca, cb, el, reseed, uncover: () => wrapB.classList.remove('covered'), covered: () => wrapB.classList.contains('covered') };
       };
       const ex1 = mkPair(maze, `いつもの草原<br><i>D<sub>u</sub></i> = ${fmt(Du0)}, <i>D<sub>v</sub></i> = ${fmt(Dv0)}`, `ウサギも速い草原<br><i>D<sub>u</sub></i> = <i>D<sub>v</sub></i> = ${fmt(Du0)}`, 'random', {}, { Dv: Du0 }, 3);
       const ex1Runner = new RD.Runner({
         sim: pairSim(ex1.a, ex1.b), onFrame: () => { ex1.va.render(); ex1.vb.render(); }, speeds: [{ label: 'ふつう', spf: 8 }, { label: 'はやい', spf: 24 }], speed: 1,
-        onReset: () => ex1.reseed(),
+        // 予想する前は、↺ を押しても再生できないままにする（↺ は再生ボタンを使えるように戻すため）
+        onReset: () => { ex1.reseed(); if (ex1.covered()) ex1Runner.setEnabled(false); },
       });
       ex1Runner.setEnabled(false);
       root.appendChild(step({
@@ -606,7 +607,7 @@
       const ex2Count = () => { ex2.ca.textContent = `群れの数：${countGroups(ex2.a)}`; if (!ex2.cb.parentNode.querySelector('.covered')) ex2.cb.textContent = `群れの数：${countGroups(ex2.b)}`; };
       const ex2Runner = new RD.Runner({
         sim: pairSim(ex2.a, ex2.b), onFrame: () => { ex2.va.render(); ex2.vb.render(); if (ex2Frames++ % 20 === 0) ex2Count(); }, speeds: [{ label: 'ふつう', spf: 8 }, { label: 'はやい', spf: 24 }], speed: 1,
-        onReset: () => { ex2.reseed(); ex2Count(); },
+        onReset: () => { ex2.reseed(); ex2Count(); if (ex2.covered()) ex2Runner.setEnabled(false); },
       });
       ex2Runner.setEnabled(false);
       root.appendChild(step({
@@ -676,7 +677,7 @@
       const ex3 = mkPair(maze, '種：数か所', '種：あちこち少しずつ', 'random', {}, {}, 9);
       ex3.reseed = () => { ex3.a.seed('random', seeded(9)); ex3.b.seed('noise', seeded(9)); };
       ex3.reseed();
-      const ex3Runner = new RD.Runner({ sim: pairSim(ex3.a, ex3.b), onFrame: () => { ex3.va.render(); ex3.vb.render(); }, speeds: [{ label: 'ふつう', spf: 8 }, { label: 'はやい', spf: 24 }], speed: 1, onReset: () => ex3.reseed() });
+      const ex3Runner = new RD.Runner({ sim: pairSim(ex3.a, ex3.b), onFrame: () => { ex3.va.render(); ex3.vb.render(); }, speeds: [{ label: 'ふつう', spf: 8 }, { label: 'はやい', spf: 24 }], speed: 1, onReset: () => { ex3.reseed(); if (ex3.covered()) ex3Runner.setEnabled(false); } });
       ex3Runner.setEnabled(false);
       root.appendChild(step({
         title: '種を変えたら、模様の種類も変わる？',
@@ -811,6 +812,7 @@
       }
       const cRunner = new RD.Runner({
         sim: cSim, autoplay: true, speeds: [{ label: 'ふつう', spf: 6 }, { label: 'はやい', spf: 16 }, { label: 'とても速い', spf: 36 }], speed: 1,
+        budgetMs: 24, // 遅いスマホでは1フレームのコマ数をおさえる（判定はコマ数で数えるので結果は同じ）
         onFrame: () => { cView.render(); showProg(); },
         onStep: () => { obs++; if (obs >= OBS_STEPS && !judged) judgeNow(); },
         onReset: () => { cSim.seed(cSeed); changed(); },
@@ -842,7 +844,7 @@
         const tick = () => {
           if (genCancelled) return;
           const t0 = performance.now();
-          while (performance.now() - t0 < 8) {
+          while (performance.now() - t0 < 16) {
             if (!cur) {
               cur = queue.shift();
               if (!cur) return;
@@ -852,7 +854,7 @@
               shots = [];
             }
             const total = cur.steps || 6000, next = Math.round(FRAMES[shots.length] * total);
-            gs.step(Math.min(100, next - gs.steps));
+            gs.step(Math.min(20, next - gs.steps)); // 少しずつ（遅いスマホでも 1 回の計算が長くならないように）
             if (gs.steps >= next) {
               fv.render();
               const url = fv.thumbnail(144);

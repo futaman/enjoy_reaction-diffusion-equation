@@ -138,9 +138,13 @@
         let done = 0;
         const tick = () => {
           if (!cmpBox.isConnected) { busy = false; return; }
-          const n = Math.min(150, cmpSteps - done);
-          sims.forEach((s) => s.step(n));
-          done += n;
+          // 遅いスマホでも固まらないよう、少しずつ（約 12ms ずつ）計算する
+          const t0 = performance.now();
+          while (done < cmpSteps && performance.now() - t0 < 12) {
+            const n = Math.min(10, cmpSteps - done);
+            sims.forEach((s) => s.step(n));
+            done += n;
+          }
           views.forEach((v) => v.render());
           cmpMsg.textContent = `${done} / ${cmpSteps} コマ`;
           if (done < cmpSteps) { setTimeout(tick, 0); return; }

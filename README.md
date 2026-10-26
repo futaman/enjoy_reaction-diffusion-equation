@@ -51,6 +51,7 @@
 | [章を書くための手引き](docs/chapter-guide.md) | 章の骨組み、共通部品の API、確かめ方 |
 | [パラメータ検証レポート](docs/param-report.md) | Δt と各模様の F, k、合格範囲を検証した結果 |
 | [QA レポート](docs/qa-report.md) | 全体を通した点検の指摘一覧（すべて修正済み） |
+| [スマホ QA レポート](docs/mobile-qa-report.md) | スマホ（タッチ・小さい画面・遅い CPU）での点検の指摘一覧と対応 |
 
 ## 開発
 

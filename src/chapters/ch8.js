@@ -33,6 +33,10 @@
 .ch8-msg.warn { color: var(--ng); }
 .ch8-fps { font-size: 0.75rem; color: var(--ink-3); text-align: right; font-family: var(--font-mono); }
 .ch8-sel { padding: 4px 8px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); max-width: 100%; }
+@media (pointer: coarse) {
+  .ch8-coll .del { width: 30px; height: 30px; line-height: 28px; }
+  .ch8-sel, .ch8-param input[type=text], .ch8-save input { min-height: 38px; }
+}
 `;
 
   const SEEDS = [{ value: 'center', label: 'まん中に1つ' }, { value: 'random', label: '数か所' }, { value: 'noise', label: 'あちこち少しずつ' }];
@@ -78,6 +82,8 @@
       let fpsT = performance.now(), fpsN = 0, fpsSteps = sim.steps;
       const runner = new RD.Runner({
         sim, autoplay: true,
+        // 遅いスマホでも、なぞって描くときに画面がかくかくしないように（速い PC ではこの上限に届かない）
+        budgetMs: 30,
         speeds: [{ label: 'ゆっくり', spf: 1 }, { label: 'ふつう', spf: 6 }, { label: 'はやい', spf: 16 }, { label: 'とても速い', spf: 36 }], speed: 2,
         onFrame: () => {
           view.render();
@@ -96,7 +102,7 @@
       const toolSeg = RD.ui.segmented([{ value: 'rabbit', label: '🐇 ウサギを放す' }, { value: 'erase', label: '🧽 消しゴム' }, { value: 'look', label: '🔍 値を見る' }], tool, (t) => {
         tool = t;
         view.setBrush(t === 'look' ? null : { mode: t, radius });
-        view.readout.textContent = t === 'look' ? 'マスをクリックすると値が見られます' : t === 'erase' ? 'なぞるとウサギを消せます' : 'なぞるとウサギを放せます';
+        view.readout.textContent = t === 'look' ? 'マスをクリック（タップ）すると値が見られます' : t === 'erase' ? 'なぞるとウサギを消せます' : 'なぞるとウサギを放せます';
       });
       const radS = RD.ui.slider({ label: 'ふでの太さ', min: 1, max: 14, step: 1, value: radius, format: (v) => `${v} マス`, onInput: (v) => { radius = v; if (view.brush) view.setBrush({ mode: tool, radius }); } });
       const seedSeg = RD.ui.segmented(SEEDS, seedStyle, (v) => { seedStyle = v; sim.seed(seedStyle); view.render(); });

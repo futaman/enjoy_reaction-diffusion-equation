@@ -100,7 +100,8 @@
 /* ===== ベース ===== */
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { -webkit-text-size-adjust: 100%; }
+/* scrollIntoView やページ内リンクで、上にくっついたヘッダーの下に隠れないように */
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 64px; }
 body {
   margin: 0;
   font-family: var(--font);
@@ -259,7 +260,8 @@ details.teacher > summary::before { content: "📝 "; }
 
 /* ===== シミュレーション表示 ===== */
 .sim-view { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
-.sim-canvas-wrap { position: relative; width: 100%; max-width: 480px; margin: 0 auto; }
+/* 横向きのスマホでも草原全体が画面に入るように、画面の高さでも大きさをおさえる */
+.sim-canvas-wrap { position: relative; width: 100%; max-width: min(480px, calc(100svh - 88px)); margin: 0 auto; }
 .sim-canvas-wrap canvas { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); touch-action: manipulation; image-rendering: pixelated; background: #000; }
 /* ブラシで描くときだけ、指の動きをページのスクロールに使わない */
 .sim-canvas-wrap.brush canvas { cursor: crosshair; touch-action: none; }
@@ -357,7 +359,8 @@ details.teacher > summary::before { content: "📝 "; }
 .muted { color: var(--ink-2); font-size: 0.9rem; }
 .center { text-align: center; }
 .mt0 { margin-top: 0; }
-.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 8px 18px; border-radius: 999px; z-index: 50; font-size: 0.95rem; box-shadow: var(--shadow); }
+/* left: 50% のままだと幅が画面の半分で折り返されるので、幅は中身に合わせる。下のボタンを押せなくしない */
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); text-align: center; pointer-events: none; background: var(--ink); color: var(--paper); padding: 8px 18px; border-radius: 999px; z-index: 50; font-size: 0.95rem; box-shadow: var(--shadow); }
 
 @media (max-width: 520px) {
   body { font-size: 15.5px; }
@@ -369,6 +372,29 @@ details.teacher > summary::before { content: "📝 "; }
   .match-item select { width: 100%; max-width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+
+/* ===== 指で操作する端末（スマホ・タブレット） ===== */
+@media (pointer: coarse) {
+  /* 押す場所を指の大きさに（高さ 36px 以上） */
+  .btn.small { min-height: 36px; }
+  .app-header .icon-btn { min-height: 38px; }
+  .seg button { min-height: 36px; }
+  .toggle { min-height: 36px; }
+  .toggle input { width: 22px; height: 22px; }
+  .slider input[type=range] { height: 36px; }
+  .equation .term { padding: 4px 6px; min-width: 40px; text-align: center; }
+  .numgrid .cell { min-height: 40px; }
+  .numgrid .cell input { height: auto; align-self: stretch; }
+  .answer-row input[type=text], .match-item select { min-height: 38px; }
+  /* iOS は 16px 未満の入力欄をタップすると画面を拡大してしまうので、入力欄の文字は 16px にする */
+  input[type=text], input:not([type]), select, textarea { font-size: 16px !important; }
+  /* トーストは電卓ボタンの上に出す */
+  .toast { bottom: 68px; }
+}
+/* 横向きのスマホなど、高さが低い画面：電卓は電卓ボタンの左に出す（上にはみ出さないように） */
+@media (max-height: 520px) {
+  .calc-panel { bottom: 8px; right: 124px; max-height: calc(100vh - 16px); overflow-y: auto; }
+}
 
 /* =====================================================================
    見た目「かわいい」（data-look="cute"）

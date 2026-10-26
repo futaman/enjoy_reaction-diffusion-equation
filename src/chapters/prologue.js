@@ -25,13 +25,22 @@
       const sim = new RD.Sim({ w: size, h: size });
       const view = new RD.FieldView(sim, { readout: false });
       let current = pats[0];
+      // 最初から少し進めておく（白紙から始まると退屈なので）。遅いスマホで画面が固まらないよう、数フレームに分けて計算する
+      let warm = 0, warmRaf = 0;
+      const warmUp = () => {
+        const t0 = performance.now();
+        while (warm > 0 && performance.now() - t0 < 12) { const n = Math.min(20, warm); sim.step(n); warm -= n; }
+        view.render();
+        warmRaf = warm > 0 ? requestAnimationFrame(warmUp) : 0;
+      };
+      ctx.onCleanup(() => cancelAnimationFrame(warmRaf));
       const load = (pt) => {
         current = pt;
         sim.setParams({ F: pt.F, k: pt.k });
         sim.seed(pt.seed || 'random');
-        // 最初から少し進めておく（白紙から始まると退屈なので）
-        sim.step(Math.min(600, Math.round((pt.steps || 4000) * 0.15)));
-        view.render();
+        warm = Math.min(600, Math.round((pt.steps || 4000) * 0.15));
+        cancelAnimationFrame(warmRaf);
+        warmUp();
         caption.innerHTML = `いまの模様：<b>${pt.name}</b>（F = ${pt.F}, k = ${pt.k}）`;
       };
       const caption = h('div', { class: 'readout' });

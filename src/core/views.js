@@ -53,6 +53,17 @@
     new ResizeObserver((ents) => { const nw = Math.round(ents[0].contentRect.width); if (nw && nw !== w) { w = nw; fn(); } }).observe(el);
   }
 
+  // タップの判定。マウスは押した瞬間、指やペンは「ほとんど動かさずにはなした」ときに fn(ev) を呼ぶ
+  // （スクロールが始まると pointercancel が来るので、スクロールではえらばない）。
+  function onTap(fn) {
+    let down = null;
+    return {
+      down(ev) { if (ev.pointerType === 'mouse') { down = null; fn(ev); } else down = { x: ev.clientX, y: ev.clientY }; },
+      up(ev) { if (down && Math.hypot(ev.clientX - down.x, ev.clientY - down.y) < 12) fn(ev); down = null; },
+      cancel() { down = null; },
+    };
+  }
+
   // ---- 草原ビュー（2次元） ----
   // opts: field 'v'|'u', palette, range [lo, hi], brush {mode, radius} | null,
   //       onPick(i), onPaint(), colorbar(true), title（カラーバーの見出し）, hiLabel（カラーバー右端の文字）,
@@ -79,7 +90,7 @@
       this.off.width = w; this.off.height = hgt;
       this.img = this.off.getContext('2d').createImageData(w, hgt);
       this.wrap = h('div', { class: 'sim-canvas-wrap' + (this.brush ? ' brush' : '') }, this.canvas);
-      if (opts.maxCss) this.wrap.style.maxWidth = opts.maxCss;
+      if (opts.maxCss) this.wrap.style.maxWidth = `min(${opts.maxCss}, calc(100svh - 88px))`;
       this.cbBar = h('div', { class: 'bar' });
       this.cbTitle = h('div', { class: 'cb-title' });
       this.cbLo = h('span'); this.cbHi = h('span');
@@ -120,20 +131,20 @@
         this.render();
         this.onPaint && this.onPaint();
       };
+      // 指（タッチ）でマスをえらぶのは、指をはなしたとき（動かさずにはなしたときだけ）。
+      // 草原の上からスクロールしたときに、えらんだマスが変わらないようにする。マウスは押した瞬間にえらぶ。
+      const tap = onTap((ev) => { const [x, y] = this._cellAt(ev); this.pick(this.sim.idx(x, y)); });
       this.canvas.addEventListener('pointerdown', (ev) => {
         if (this.brush) {
           painting = true; last = null;
           this.canvas.setPointerCapture(ev.pointerId);
           paintAt(ev);
-        } else {
-          const [x, y] = this._cellAt(ev);
-          this.pick(this.sim.idx(x, y));
-        }
+        } else tap.down(ev);
       });
       this.canvas.addEventListener('pointermove', (ev) => { if (painting && this.brush) paintAt(ev); });
       const end = () => { painting = false; last = null; };
-      this.canvas.addEventListener('pointerup', end);
-      this.canvas.addEventListener('pointercancel', end);
+      this.canvas.addEventListener('pointerup', (ev) => { if (!painting && !this.brush) tap.up(ev); end(); });
+      this.canvas.addEventListener('pointercancel', () => { tap.cancel(); end(); });
     }
     pick(i) {
       this.picked = i;
@@ -177,7 +188,7 @@
               : `草 <i class="v">u</i> = ${fmt(sim.u[i], 3)}　ウサギ <i class="v">v</i> = ${fmt(sim.v[i], 3)}`);
         }
       } else if (this.showReadout && !this.readout.textContent) {
-        this.readout.textContent = this.brush ? 'なぞるとウサギを放せます' : 'マスをクリックすると値が見られます';
+        this.readout.textContent = this.brush ? 'なぞるとウサギを放せます' : 'マスをクリック（タップ）すると値が見られます';
       }
     }
     // サムネイル（コレクション用）
@@ -214,7 +225,7 @@
       observeResize(this.canvas, () => this.render());
       if (this.o.onPick) {
         this.canvas.style.cursor = 'pointer';
-        this.canvas.addEventListener('pointerdown', (ev) => {
+        const tap = onTap((ev) => {
           const a = this.o.get();
           const r = this.canvas.getBoundingClientRect();
           const i = Math.floor(((ev.clientX - r.left) / r.width) * a.length);
@@ -222,6 +233,9 @@
           this.o.onPick(this.o.highlight);
           this.render();
         });
+        this.canvas.addEventListener('pointerdown', (ev) => tap.down(ev));
+        this.canvas.addEventListener('pointerup', (ev) => tap.up(ev));
+        this.canvas.addEventListener('pointercancel', () => tap.cancel());
       }
       this.render();
     }
@@ -308,7 +322,8 @@
   //       speeds [{label, spf}]（spf = 1フレームあたりのステップ数。0.1 なら10フレームに1回）, speed（初期 index）,
   //       autoplay, showTime, timeLabel(sim),
   //       stopWhen(sim) → 止める理由の文字列 | false（毎コマ確認）, onStop(reason),
-  //       watch（この要素が画面に見えているときだけ動かす。既定は再生バー自身）
+  //       watch（この要素が画面に見えているときだけ動かす。既定は再生バー自身）,
+  //       budgetMs（1フレームで計算に使う時間の上限。遅い端末で画面が固まらないよう、こえたらそのフレームの残りのコマは捨てる）
   class Runner {
     constructor(opts) {
       this.o = Object.assign({ speeds: [{ label: 'ゆっくり', spf: 0.25 }, { label: 'ふつう', spf: 1 }, { label: 'はやい', spf: 8 }], speed: 1, showTime: true }, opts);
@@ -346,7 +361,9 @@
     setEnabled(on) { if (!on) this.pause(); this.playBtn.disabled = !on; this.stepBtn.disabled = !on; }
     destroy() { this.pause(); this.io && this.io.disconnect(); Runner.all.delete(this); }
     advance(n) {
+      const t0 = this.o.budgetMs && n > 1 ? performance.now() : 0;
       for (let i = 0; i < n; i++) {
+        if (t0 && i > 0 && performance.now() - t0 > this.o.budgetMs) break;
         this.sim.step(1);
         this.o.onStep && this.o.onStep(this.sim);
         if (this.sim.exploded) { this.pause(); this.o.onExplode && this.o.onExplode(); break; }
